@@ -4,7 +4,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     username VARCHAR(100) UNIQUE NOT NULL,
-    is_approved CHAR(1) DEFAULT '0' CHECK (is_approved IN ('0', '1')),
+    --is_approved CHAR(1) DEFAULT '0' CHECK (is_approved IN ('0', '1')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     profile_picture_url VARCHAR(500) NOT NULL,
     bio TEXT
@@ -19,9 +19,9 @@ CREATE TABLE moderator_accounts (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE guest_accounts (
-    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
-);
+--CREATE TABLE guest_accounts (
+--    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+--);
 
 -- LOGIN HISTORY
 CREATE TABLE login_history (
@@ -63,13 +63,13 @@ CREATE TABLE books (
     publication_date DATE NOT NULL,
     cover_image VARCHAR(500) NOT NULL,
     original_country VARCHAR(100) NOT NULL,
-    language_id INTEGER NOT NULL REFERENCES languages(id),
-    genre_id INTEGER NOT NULL REFERENCES genres(id),
-    publication_house_id INTEGER NOT NULL REFERENCES publication_houses(id),
+    language_id INTEGER NOT NULL REFERENCES languages(id) ON DELETE CASCADE,
+    genre_id INTEGER NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+    publication_house_id INTEGER NOT NULL REFERENCES publication_houses(id) ON DELETE CASCADE,
     pdf_url VARCHAR(500) NOT NULL,
     average_rating NUMERIC(3,2) DEFAULT 0 NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+    added_by INTEGER NOT NULL REFERENCES users(id)
 );
 
 CREATE INDEX idx_books_creator ON books(created_by);
@@ -185,7 +185,7 @@ CREATE INDEX idx_votes_user ON votes(user_id);
 -- BOOK SUGGESTIONS
 CREATE TABLE book_suggestions (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES user_accounts(user_id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     author_name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -194,6 +194,6 @@ CREATE TABLE book_suggestions (
     submitted_at TIMESTAMP NOT NULL,
     approved CHAR(1) DEFAULT '0' NOT NULL CHECK (approved IN ('0', '1')),
     approved_by INTEGER NOT NULL REFERENCES moderator_accounts(user_id),
-    approved_at TIMESTAMP NOT NULL
+    approved_at TIMESTAMP
 );
 
