@@ -1,0 +1,72 @@
+.book-section {
+  margin-top: 3rem;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 1.2rem;
+  animation: fadeInUp 1s ease forwards;
+  animation-delay: 0.4s;
+}
+
+.scroll-container {
+  position: relative;
+}
+
+.book-list {
+  display: flex;
+  gap: 1.4rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.book-list::-webkit-scrollbar {
+  display: none;
+}
+
+.book-list > * {
+  flex: 0 0 auto;
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-name: fadeInUp;
+  animation-duration: 0.8s;
+  animation-timing-function: ease;
+  animation-delay: var(--delay);
+}
+
+.scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 2px solid white;
+  color: white;
+  padding: 0.6rem;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-btn:hover {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: #2c5364;
+  border-color: #2c5364;
+}
+
+.scroll-btn.left {
+  left: -1.5rem;
+}
+
+.scroll-btn.right {
+  right: -1.5rem;
+}
