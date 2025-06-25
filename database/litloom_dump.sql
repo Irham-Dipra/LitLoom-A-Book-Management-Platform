@@ -172,16 +172,16 @@ CREATE TABLE public.books (
     id integer NOT NULL,
     title character varying(255) NOT NULL,
     description text,
-    publication_date date NOT NULL,
-    cover_image character varying(500) NOT NULL,
-    original_country character varying(100) NOT NULL,
-    language_id integer NOT NULL,
-    genre_id integer NOT NULL,
-    publication_house_id integer NOT NULL,
-    pdf_url character varying(500) NOT NULL,
-    average_rating numeric(3,2) DEFAULT 0 NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    added_by integer NOT NULL
+    publication_date date,
+    cover_image character varying(500),
+    original_country character varying(100),
+    language_id integer,
+    genre_id integer,
+    publication_house_id integer,
+    pdf_url character varying(500),
+    average_rating numeric(3,2) DEFAULT 0,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    added_by integer
 );
 
 
@@ -501,7 +501,10 @@ CREATE TABLE public.users (
     username character varying(100) NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     profile_picture_url character varying(500) NOT NULL,
-    bio text
+    bio text,
+    first_name character varying(100),
+    last_name character varying(100),
+    active_status boolean DEFAULT false NOT NULL
 );
 
 
@@ -574,7 +577,7 @@ ALTER SEQUENCE public.votes_id_seq OWNED BY public.votes.id;
 --
 
 CREATE TABLE public.wished_books (
-    wishlist_id integer NOT NULL,
+    user_id integer NOT NULL,
     book_id integer NOT NULL
 );
 
@@ -730,6 +733,16 @@ COPY public.authors (id, name, bio, date_of_birth, country) FROM stdin;
 8	Leo Tolstoy	Russian writer famous for epic novels like "War and Peace" and "Anna Karenina".	1828-09-09	Russia
 9	Kazi Nazrul Islam	Revolutionary Bengali poet, writer, and musician, known as the "Rebel Poet" of Bengal.	1899-05-24	Bangladesh
 10	George Orwell	British author known for dystopian classics like "1984" and "Animal Farm".	1903-06-25	United Kingdom
+12	V.E. Schwab	Victoria Schwab is known for fantasy novels blending dark magic and human emotion.	1987-07-07	United States
+13	T.J. Klune	American author of fantasy and romance with LGBTQ+ representation.	1982-05-20	United States
+14	Andy Weir	Former software engineer and author of science fiction bestsellers.	1972-06-16	United States
+15	Matt Haig	British author of fiction and nonfiction exploring mental health and the human experience.	1975-07-03	United Kingdom
+16	Jennette McCurdy	Actress and author, known for her memoir on childhood trauma and healing.	1992-06-26	United States
+17	Rebecca Yarros	American writer best known for emotionally charged romance and fantasy.	1981-12-14	United States
+18	Suzanne Collins	Creator of *The Hunger Games* series, known for dystopian fiction.	1962-08-10	United States
+19	Susanna Clarke	British author whose work blends historical fiction and fantasy.	1959-11-01	United Kingdom
+20	Kate Elizabeth Russell	American author of controversial and introspective psychological fiction.	1984-07-16	United States
+21	Sarah J. Maas	Bestselling fantasy author known for high-stakes romance and action.	1986-03-05	United States
 \.
 
 
@@ -738,6 +751,26 @@ COPY public.authors (id, name, bio, date_of_birth, country) FROM stdin;
 --
 
 COPY public.book_authors (book_id, author_id) FROM stdin;
+4110	12
+4111	13
+4114	14
+4115	15
+4116	16
+4117	17
+4118	18
+4119	19
+4120	20
+4121	21
+1	1
+2	2
+3	3
+4	4
+5	6
+6	7
+7	8
+8	5
+9	9
+10	10
 \.
 
 
@@ -770,16 +803,26 @@ COPY public.book_suggestions (id, user_id, title, author_name, description, lang
 --
 
 COPY public.books (id, title, description, publication_date, cover_image, original_country, language_id, genre_id, publication_house_id, pdf_url, average_rating, created_at, added_by) FROM stdin;
-1	One Hundred Years of Solitude	A multi-generational tale of the Buendía family, blending magical realism with political and social commentary.	1967-05-30	https://example.com/covers/solitude.jpg	Colombia	4	1	17	https://example.com/pdfs/solitude.pdf	4.70	2025-06-22 21:19:18.608485	1
-2	Gitanjali	A collection of poems reflecting devotion, love, and spirituality that earned Tagore the Nobel Prize.	1910-08-14	https://example.com/covers/gitanjali.jpg	India	2	11	8	https://example.com/pdfs/gitanjali.pdf	4.50	2025-06-22 21:19:18.608485	2
-3	Kafka on the Shore	A metaphysical and surreal novel following a runaway teenager and a man who can talk to cats.	2002-09-12	https://example.com/covers/kafka.jpg	Japan	11	3	14	https://example.com/pdfs/kafka.pdf	4.30	2025-06-22 21:19:18.608485	3
-4	Things Fall Apart	A powerful novel about pre-colonial life in Nigeria and the impact of European colonialism.	1958-06-17	https://example.com/covers/thingsfallapart.jpg	Nigeria	1	1	15	https://example.com/pdfs/thingsfallapart.pdf	4.60	2025-06-22 21:19:18.608485	4
-5	Himu	The story of a free-spirited young man who walks barefoot and questions society through his simplicity.	1990-03-01	https://example.com/covers/himu.jpg	Bangladesh	2	1	11	https://example.com/pdfs/himu.pdf	4.40	2025-06-22 21:19:18.608485	5
-6	The Bell Jar	A semi-autobiographical novel exploring mental illness, identity, and societal expectations.	1963-01-14	https://example.com/covers/belljar.jpg	United States	1	1	16	https://example.com/pdfs/belljar.pdf	4.20	2025-06-22 21:19:18.608485	6
-7	War and Peace	A historical epic interweaving personal lives and military campaigns during the Napoleonic era.	1869-01-01	https://example.com/covers/warpeace.jpg	Russia	1	8	5	https://example.com/pdfs/warpeace.pdf	4.80	2025-06-22 21:19:18.608485	7
-8	Mrs Dalloway	A modernist novel capturing one day in the life of Clarissa Dalloway, rich with inner thought and stream-of-consciousness.	1925-05-14	https://example.com/covers/mrsdalloway.jpg	United Kingdom	1	1	16	https://example.com/pdfs/mrsdalloway.pdf	4.10	2025-06-22 21:19:18.608485	8
-9	Rebels Poetry	A collection of revolutionary poems challenging oppression and injustice in colonial Bengal.	1922-08-01	https://example.com/covers/rebelpoetry.jpg	Bangladesh	2	11	12	https://example.com/pdfs/rebelpoetry.pdf	4.60	2025-06-22 21:19:18.608485	9
-10	1984	A dystopian novel depicting a totalitarian regime that surveils, manipulates, and erases truth.	1949-06-08	https://example.com/covers/1984.jpg	United Kingdom	1	6	1	https://example.com/pdfs/1984.pdf	4.90	2025-06-22 21:19:18.608485	10
+4110	The Invisible Life of Addie LaRue	A young woman makes a Faustian bargain to live forever but is cursed to be forgotten by everyone she meets.	2020-10-06	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1584633432i/50623864.jpg	United States	1	3	19	https://example.com/pdfs/invisible_life_addie_larue.pdf	4.20	2025-06-25 00:02:31.071762	1
+4111	The House in the Cerulean Sea	A charming tale of a caseworker sent to a magical orphanage, discovering love and acceptance.	2020-03-17	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1569514209i/45047384.jpg	United States	1	3	19	https://example.com/pdfs/house_cerulean_sea.pdf	4.40	2025-06-25 00:02:31.071762	1
+4114	Project Hail Mary	A lone astronaut wakes up on a spaceship with no memory and must save Earth from disaster.	2021-05-04	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1597695864i/54493401.jpg	United States	1	4	20	https://example.com/pdfs/project_hail_mary.pdf	4.50	2025-06-25 00:05:48.888889	1
+4115	The Midnight Library	Between life and death lies a library where every book represents a different path life could have taken.	2020-08-13	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1602190253i/52578297.jpg	United Kingdom	1	3	21	https://example.com/pdfs/midnight_library.pdf	4.10	2025-06-25 00:05:48.888889	1
+4116	I’m Glad My Mom Died	A raw and honest memoir by Jennette McCurdy about her complicated relationship with her mother and healing.	2022-08-09	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1649286799i/59364173.jpg	United States	1	26	3	https://example.com/pdfs/im_glad_my_mom_died.pdf	4.70	2025-06-25 00:09:02.151792	1
+4117	Fourth Wing	A fierce young woman trains in a deadly military academy in a world of dragons and political intrigue.	2023-05-02	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1701980900i/61431922.jpg	United States	1	3	23	https://example.com/pdfs/fourth_wing.pdf	4.30	2025-06-25 00:09:02.151792	1
+4118	The Ballad of Songbirds and Snakes	A prequel to The Hunger Games, following the rise of a young Coriolanus Snow.	2020-05-19	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1593892032i/51901147.jpg	United States	1	27	24	https://example.com/pdfs/ballad_songbirds_snakes.pdf	4.00	2025-06-25 00:09:51.435282	1
+4119	Piranesi	A surreal and mysterious tale of a man living in a strange, labyrinthine house filled with statues.	2020-09-15	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1609095173i/50202953.jpg	United Kingdom	1	3	6	https://example.com/pdfs/piranesi.pdf	4.10	2025-06-25 00:09:51.435282	1
+4120	My Dark Vanessa	A gripping psychological thriller exploring a complex and controversial relationship.	2020-06-02	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1583447793i/44890081.jpg	United States	1	6	26	https://example.com/pdfs/my_dark_vanessa.pdf	4.00	2025-06-25 00:09:51.435282	1
+4121	House of Earth and Blood	The first book in a fantasy series about a woman caught between gods, demons, and mortal politics.	2020-03-03	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1559142847i/44778083.jpg	United States	1	3	6	https://example.com/pdfs/house_earth_blood.pdf	4.20	2025-06-25 00:09:51.435282	1
+1	One Hundred Years of Solitude	A multi-generational tale of the Buendía family, blending magical realism with political and social commentary.	1967-05-30	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1327881361i/320.jpg	Colombia	4	1	17	https://example.com/pdfs/solitude.pdf	4.70	2025-06-22 21:19:18.608485	1
+2	Gitanjali	A collection of poems reflecting devotion, love, and spirituality that earned Tagore the Nobel Prize.	1910-08-14	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1348514071i/66414.jpg	India	2	11	8	https://example.com/pdfs/gitanjali.pdf	4.50	2025-06-22 21:19:18.608485	2
+3	Kafka on the Shore	A metaphysical and surreal novel following a runaway teenager and a man who can talk to cats.	2002-09-12	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1429638085i/4929.jpg	Japan	11	3	14	https://example.com/pdfs/kafka.pdf	4.30	2025-06-22 21:19:18.608485	3
+4	Things Fall Apart	A powerful novel about pre-colonial life in Nigeria and the impact of European colonialism.	1958-06-17	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1645022990i/60316758.jpg	Nigeria	1	1	15	https://example.com/pdfs/thingsfallapart.pdf	4.60	2025-06-22 21:19:18.608485	4
+5	Himu	The story of a free-spirited young man who walks barefoot and questions society through his simplicity.	1990-03-01	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1627028538i/58612471.jpg	Bangladesh	2	1	11	https://example.com/pdfs/himu.pdf	4.40	2025-06-22 21:19:18.608485	5
+6	The Bell Jar	A semi-autobiographical novel exploring mental illness, identity, and societal expectations.	1963-01-14	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1668645154i/56616095.jpg	United States	1	1	16	https://example.com/pdfs/belljar.pdf	4.20	2025-06-22 21:19:18.608485	6
+8	Mrs Dalloway	A modernist novel capturing one day in the life of Clarissa Dalloway, rich with inner thought and stream-of-consciousness.	1925-05-14	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1646148221i/14942.jpg	United Kingdom	1	1	16	https://example.com/pdfs/mrsdalloway.pdf	4.10	2025-06-22 21:19:18.608485	8
+9	Shonchita	A collection of revolutionary poems challenging oppression and injustice in colonial Bengal.	1922-08-01	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1505814718i/17201996.jpg	Bangladesh	2	11	12	https://example.com/pdfs/rebelpoetry.pdf	4.60	2025-06-22 21:19:18.608485	9
+10	1984	A dystopian novel depicting a totalitarian regime that surveils, manipulates, and erases truth.	1949-06-08	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1657781256i/61439040.jpg	United Kingdom	1	6	1	https://example.com/pdfs/1984.pdf	4.90	2025-06-22 21:19:18.608485	10
+7	War and Peace	A historical epic interweaving personal lives and military campaigns during the Napoleonic era.	1869-01-01	https://images-na.ssl-images-amazon.com/images/S/compressed.photo.goodreads.com/books/1413215930i/656.jpg	Russia	1	8	5	https://example.com/pdfs/warpeace.pdf	4.80	2025-06-22 21:19:18.608485	7
 \.
 
 
@@ -816,6 +859,8 @@ COPY public.genres (id, name) FROM stdin;
 18	Travel
 19	Religion
 20	Drama
+26	Memoir
+27	Historical Fiction
 \.
 
 
@@ -862,7 +907,8 @@ COPY public.login_history (id, user_id, login_time, ip_address) FROM stdin;
 --
 
 COPY public.moderator_accounts (user_id) FROM stdin;
-14
+18
+20
 \.
 
 
@@ -888,6 +934,12 @@ COPY public.publication_houses (id, name, address, country, contact_email) FROM 
 15	Heinemann	Halley Court, Jordan Hill, Oxford OX2 8EJ	United Kingdom	info@heinemann.com
 16	Faber and Faber	Bloomsbury House, 74-77 Great Russell St, London WC1B 3DA	United Kingdom	enquiries@faber.co.uk
 17	Alianza Editorial	Calle Juan Ignacio Luca de Tena, 17, Madrid	Spain	contacto@alianzaeditorial.es
+19	Tor Books	175 Fifth Avenue, New York, NY 10010	United States	info@tor.com
+20	Crown Publishing Group	1745 Broadway, New York, NY 10019	United States	contact@crownpublishing.com
+21	Canongate Books	14 High Street, Edinburgh EH1 1TE	United Kingdom	info@canongate.co.uk
+23	Entangled Publishing	New York, NY	United States	info@entangledpublishing.com
+24	Scholastic Press	557 Broadway, New York, NY 10012	United States	contact@scholastic.com
+26	Dutton	1290 Avenue of the Americas, New York, NY 10104	United States	contact@duttonbooks.com
 \.
 
 
@@ -932,21 +984,26 @@ COPY public.user_accounts (user_id) FROM stdin;
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.users (id, email, password, username, created_at, profile_picture_url, bio) FROM stdin;
-1	john.doe@example.com	hashed_password	johndoe	2025-06-05 13:27:18.805936	https://example.com/profile.jpg	Just a reader.
-2	alice@example.com	hashed_pass_1	alice123	2025-06-05 13:29:53.56362	http://example.com/alice.jpg	Alice is a passionate reader.
-3	bob@example.com	hashed_pass_2	bobby99	2025-06-05 13:29:53.56362	http://example.com/bob.jpg	Bob likes sci-fi books.
-4	anika.rahman@example.com	password123	anika_rahman	2025-06-22 19:36:44.18794	https://example.com/images/anika.jpg	Bookworm from Dhaka, loves poetry and rain.
-5	arjun.patel@example.com	securepass456	arjun_p	2025-06-22 19:36:44.18794	https://example.com/images/arjun.jpg	Tech enthusiast from Gujarat. Coffee is life.
-6	emily.thompson@example.com	mypass789	emilyt	2025-06-22 19:36:44.18794	https://example.com/images/emily.jpg	NYC-based journalist with a love for mystery novels.
-7	jakub.nowak@example.com	jakub321	jakub_nowak	2025-06-22 19:36:44.18794	https://example.com/images/jakub.jpg	Traveller from Krakow, into history and photography.
-8	mahmudul.karim@example.com	karim007	mahmudul_k	2025-06-22 19:36:44.18794	https://example.com/images/karim.jpg	Aspiring author from Chittagong. Writes fiction.
-9	sofia.rossi@example.com	italylove	sofia_r	2025-06-22 19:36:44.18794	https://example.com/images/sofia.jpg	Book reviewer from Florence. Big fan of romance.
-10	liam.murphy@example.com	liamirish	liam_murphy	2025-06-22 19:36:44.18794	https://example.com/images/liam.jpg	From Dublin. Fantasy nerd. Tea over coffee always.
-11	sneha.iyer@example.com	sneha098	sneha_iyer	2025-06-22 19:36:44.18794	https://example.com/images/sneha.jpg	Literature student from Chennai. Bibliophile forever.
-12	noah.bennett@example.com	bennett_pass	noahbennett	2025-06-22 19:36:44.18794	https://example.com/images/noah.jpg	Seattle-based coder. Enjoys thriller books.
-13	aline.dupont@example.com	bonjour123	aline_dupont	2025-06-22 19:36:44.18794	https://example.com/images/aline.jpg	Parisian book lover with a soft spot for classics.
-14	diprairham3223@gmail.com	dipra3223	being_0loSh	2025-06-22 20:39:22	hehe	Somewhere between novels and whispered poetry — that’s where I feel at home.
+COPY public.users (id, email, password, username, created_at, profile_picture_url, bio, first_name, last_name, active_status) FROM stdin;
+1	john.doe@example.com	hashed_password	johndoe	2025-06-05 13:27:18.805936	https://example.com/profile.jpg	Just a reader.	John	Doe	f
+2	alice@example.com	hashed_pass_1	alice123	2025-06-05 13:29:53.56362	http://example.com/alice.jpg	Alice is a passionate reader.	Alice	Allen	f
+3	bob@example.com	hashed_pass_2	bobby99	2025-06-05 13:29:53.56362	http://example.com/bob.jpg	Bob likes sci-fi books.	Bob	Allen	f
+4	anika.rahman@example.com	password123	anika_rahman	2025-06-22 19:36:44.18794	https://example.com/images/anika.jpg	Bookworm from Dhaka, loves poetry and rain.	Anika	Rahman	f
+5	arjun.patel@example.com	securepass456	arjun_p	2025-06-22 19:36:44.18794	https://example.com/images/arjun.jpg	Tech enthusiast from Gujarat. Coffee is life.	Arjun	Patel	f
+6	emily.thompson@example.com	mypass789	emilyt	2025-06-22 19:36:44.18794	https://example.com/images/emily.jpg	NYC-based journalist with a love for mystery novels.	Emily	Thompson	f
+7	jakub.nowak@example.com	jakub321	jakub_nowak	2025-06-22 19:36:44.18794	https://example.com/images/jakub.jpg	Traveller from Krakow, into history and photography.	Jakub	Nowak	f
+8	mahmudul.karim@example.com	karim007	mahmudul_k	2025-06-22 19:36:44.18794	https://example.com/images/karim.jpg	Aspiring author from Chittagong. Writes fiction.	Mahmudul	Karim	f
+9	sofia.rossi@example.com	italylove	sofia_r	2025-06-22 19:36:44.18794	https://example.com/images/sofia.jpg	Book reviewer from Florence. Big fan of romance.	Sofia	Rossi	f
+10	liam.murphy@example.com	liamirish	liam_murphy	2025-06-22 19:36:44.18794	https://example.com/images/liam.jpg	From Dublin. Fantasy nerd. Tea over coffee always.	Liam	Murphy	f
+11	sneha.iyer@example.com	sneha098	sneha_iyer	2025-06-22 19:36:44.18794	https://example.com/images/sneha.jpg	Literature student from Chennai. Bibliophile forever.	Sneha	Iyer	f
+12	noah.bennett@example.com	bennett_pass	noahbennett	2025-06-22 19:36:44.18794	https://example.com/images/noah.jpg	Seattle-based coder. Enjoys thriller books.	Noah	Bennet	f
+13	aline.dupont@example.com	bonjour123	aline_dupont	2025-06-22 19:36:44.18794	https://example.com/images/aline.jpg	Parisian book lover with a soft spot for classics.	Aline	Dupont	f
+15	test@example.com	$2b$10$PU6U4ATQIusDgUokc6qPPuGS3.V9/zoPCmZPGw5apJNz/KB5Tu7Uy	testuser	2025-06-24 21:01:15.277777		I love reading books!	Jalil	Uddin	f
+16	tesdjhkjfhat@example.com	$2b$10$PoEGI6JhNyI6DqApZuWtI.4ybaTCtO4iL57eVinNJ1zgQLe6/nyoa	ksjddffhkja	2025-06-24 21:25:14.050238		I love reading books!	Khalil	Uddin	f
+17	tesdjhkdfdjfhat@example.com	$2b$10$ejCZRITmt.DFv3VyADIOoe.qK.7JpxoTCBCqkfFU0Ol5QeulZgHw2	ksjdddfdffhkja	2025-06-24 22:42:34.300337		I love reading books!	Khalil	Uddin	f
+18	anabildas2003@gmail.com	$2b$10$IgqFThVy5.OmSSE2YEhtO.ilqy0rnRvZWunh7UQLsewIXyyRZ6dVS	anabil	2025-06-24 22:48:40.487592	https://scontent.fdac181-1.fna.fbcdn.net/v/t39.30808-6/504157351_1215671550285575_3822665019208153508_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeFLVoW9WhDdoksWFDhdaGiAC5XXNLdXcewLldc0t1dx7Jibma3JJoIpQRPKyd9-ZNOEKZitSVstGJJ7BamcUCFq&_nc_ohc=tZEug1wQv0AQ7kNvwHDO9L5&_nc_oc=AdmdXeLo9LjIJP3SZPF8ql9orTiKi37smLHTT_52vjSmMa0k-CNiZt8_we48qyy4lgw&_nc_zt=23&_nc_ht=scontent.fdac181-1.fna&_nc_gid=MqjVbI1adf6z4-A2k3m2zg&oh=00_AfM8ztVgymcQPOh0UMnvt_DMbsG8biuTmLXGebcpksKLVg&oe=6860F28C	Bookworm from Dhaka	Anabil	Das	t
+19	anabilratno@gmail.com	$2b$10$ZHOMMH6qDrya9p3gA.SX4.zMXa7TU.ot/invZkhPccFr2m46t3rzC	qdeqed	2025-06-25 10:49:10.839111			ASDF	aa	f
+20	diprairham3223@gmail.com	$2b$10$O4EiPu9Kog.72vbbXariSOSyPKiUrPV1ok6EsCez/fscVljoil9B2	dipra3223	2025-06-25 11:25:43.996847			Irham	Dipra	t
 \.
 
 
@@ -962,7 +1019,12 @@ COPY public.votes (id, user_id, review_id, comment_id, vote_type, created_at) FR
 -- Data for Name: wished_books; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.wished_books (wishlist_id, book_id) FROM stdin;
+COPY public.wished_books (user_id, book_id) FROM stdin;
+18	4114
+18	4117
+18	4116
+18	1
+18	10
 \.
 
 
@@ -978,7 +1040,7 @@ COPY public.wishlists (id, user_id, status, added_at) FROM stdin;
 -- Name: authors_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.authors_id_seq', 11, true);
+SELECT pg_catalog.setval('public.authors_id_seq', 21, true);
 
 
 --
@@ -999,7 +1061,7 @@ SELECT pg_catalog.setval('public.book_suggestions_id_seq', 1, false);
 -- Name: books_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.books_id_seq', 22, true);
+SELECT pg_catalog.setval('public.books_id_seq', 4121, true);
 
 
 --
@@ -1013,7 +1075,7 @@ SELECT pg_catalog.setval('public.comments_id_seq', 1, false);
 -- Name: genres_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.genres_id_seq', 24, true);
+SELECT pg_catalog.setval('public.genres_id_seq', 27, true);
 
 
 --
@@ -1034,7 +1096,7 @@ SELECT pg_catalog.setval('public.login_history_id_seq', 1, false);
 -- Name: publication_houses_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.publication_houses_id_seq', 18, true);
+SELECT pg_catalog.setval('public.publication_houses_id_seq', 26, true);
 
 
 --
@@ -1055,7 +1117,7 @@ SELECT pg_catalog.setval('public.reviews_id_seq', 1, true);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 13, true);
+SELECT pg_catalog.setval('public.users_id_seq', 20, true);
 
 
 --
@@ -1245,7 +1307,7 @@ ALTER TABLE ONLY public.votes
 --
 
 ALTER TABLE ONLY public.wished_books
-    ADD CONSTRAINT wished_books_pkey PRIMARY KEY (wishlist_id, book_id);
+    ADD CONSTRAINT wished_books_pkey PRIMARY KEY (user_id, book_id);
 
 
 --
@@ -1491,11 +1553,11 @@ ALTER TABLE ONLY public.wished_books
 
 
 --
--- Name: wished_books wished_books_wishlist_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: wished_books wished_books_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.wished_books
-    ADD CONSTRAINT wished_books_wishlist_id_fkey FOREIGN KEY (wishlist_id) REFERENCES public.wishlists(id) ON DELETE CASCADE;
+    ADD CONSTRAINT wished_books_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
