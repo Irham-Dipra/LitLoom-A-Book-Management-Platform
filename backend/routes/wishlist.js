@@ -69,7 +69,7 @@ router.post('/', verifyToken, async (req, res) => {
 
     // Add to wishlist
     const newWish = await pool.query(
-      'INSERT INTO wished_books (user_id, book_id, created_at) VALUES ($1, $2, NOW()) RETURNING *',
+      'INSERT INTO wished_books (user_id, book_id) VALUES ($1, $2) RETURNING *',
       [user_id, book_id]
     );
 
@@ -97,8 +97,7 @@ router.get('/', verifyToken, async (req, res) => {
       `SELECT wb.*, b.* 
        FROM wished_books wb 
        JOIN books b ON wb.book_id = b.id 
-       WHERE wb.user_id = $1 
-       ORDER BY wb.created_at DESC`,
+       WHERE wb.user_id = $1`,
       [user_id]
     );
 
