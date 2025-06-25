@@ -1,0 +1,98 @@
+.book-card {
+  background-color: #101820;
+  color: white;
+  border-radius: 12px;
+  overflow: hidden;
+  width: 180px;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.6rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s;
+}
+
+.book-card:hover {
+  transform: scale(1.03);
+}
+
+.book-image {
+  /* width: 100%; */
+  aspect-ratio: 340/499;  /* ← Change from 340/499 to 499/340 */
+  background: linear-gradient(135deg, #2c5364, #203a43, #0f2027);
+  background-size: cover;
+  background-position: center;
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+}
+
+
+.book-details {
+  flex-grow: 1;
+}
+
+.rating-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.avg-rating {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.star-icon {
+  margin-right: 4px;
+  cursor: pointer;
+}
+
+.yellow {
+  color: gold;
+}
+
+.interactive {
+  color: #bbb;
+  transition: color 0.3s;
+}
+
+.interactive:hover {
+  color: turquoise;
+}
+
+.book-title {
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+
+.book-author {
+  font-size: 0.9rem;
+  color: #ccc;
+  margin-bottom: 0.8rem;
+}
+
+.wishlist-section {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.3s ease;
+}
+
+.wishlist-section:hover {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
+.plus-icon {
+  font-size: 0.8rem;
+}
