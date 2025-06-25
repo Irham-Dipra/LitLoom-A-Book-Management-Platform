@@ -14,6 +14,7 @@ const userRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/home');
 const wishlistRoutes = require('./routes/wishlist');
+const searchRoutes = require('./routes/search');
 
 
 
@@ -21,6 +22,7 @@ app.use('/users', userRoutes);
 app.use('/auth', authRoutes);
 app.use('/', homeRoutes);
 app.use('/wishlist', wishlistRoutes);
+app.use('/search', searchRoutes);
 
 
 app.get('/books/:id', async (req, res) => {
