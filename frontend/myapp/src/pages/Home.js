@@ -42,18 +42,11 @@ function Home() {
     else navigate('/login');
   };
 
-  const handleSearch = async (query) => {
-    try {
-      const res = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-
-      if (!data.success || !data.books) throw new Error('Invalid search response');
-
-      setSections([{ title: `Search Results for "${query}"`, books: data.books }]);
-    } catch (err) {
-      console.error('❌ Error during search:', err.message);
-    }
-  };
+  const handleSearch = (query) => {
+  if (query.trim()) {
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  }
+};
 
   return (
     <div className="home-hero">
