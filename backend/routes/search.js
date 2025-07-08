@@ -27,6 +27,47 @@ router.get('/suggestions', async (req, res) => {
   }
 });
 
+// Simple search endpoint for frontend
+router.get('/', async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.trim().length === 0) {
+      return res.json({ success: true, books: [] });
+    }
+
+    const query = `
+      SELECT DISTINCT
+        b.id,
+        b.title,
+        b.description,
+        b.cover_image,
+        b.publication_date,
+        g.name AS genre,
+        l.name AS language,
+        STRING_AGG(DISTINCT a.name, ', ') AS author_name
+      FROM books b
+      LEFT JOIN book_authors ba ON b.id = ba.book_id
+      LEFT JOIN authors a ON ba.author_id = a.id
+      LEFT JOIN genres g ON b.genre_id = g.id
+      LEFT JOIN languages l ON b.language_id = l.id
+      WHERE LOWER(b.title) LIKE LOWER($1)
+         OR LOWER(b.description) LIKE LOWER($1)
+         OR LOWER(a.name) LIKE LOWER($1)
+      GROUP BY b.id, g.name, l.name
+      ORDER BY b.title
+      LIMIT 20
+    `;
+
+    const result = await pool.query(query, [`%${q.trim()}%`]);
+    res.json({ success: true, books: result.rows });
+  } catch (err) {
+    console.error('❌ Simple search error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+
 // Get filter options (genres, languages, publication years)
 router.get('/filters', async (req, res) => {
   try {
