@@ -4,6 +4,7 @@ import { FaUser, FaRegUserCircle } from 'react-icons/fa';
 import './Home.css';
 import Homescroll from '../components/Homescroll';
 
+
 function Home() {
   const navigate = useNavigate();
   const [sections, setSections] = useState([]);
@@ -41,6 +42,19 @@ function Home() {
     else navigate('/login');
   };
 
+  const handleSearch = async (query) => {
+    try {
+      const res = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      if (!data.success || !data.books) throw new Error('Invalid search response');
+
+      setSections([{ title: `Search Results for "${query}"`, books: data.books }]);
+    } catch (err) {
+      console.error('❌ Error during search:', err.message);
+    }
+  };
+
   return (
     <div className="home-hero">
       <div className="home-header">
@@ -53,6 +67,8 @@ function Home() {
           {loggedIn ? <FaRegUserCircle /> : <FaUser />}
         </button>
       </div>
+
+      
 
       {sections.map((section, index) => (
         <Homescroll key={index} title={section.title} books={section.books} />
