@@ -30,7 +30,7 @@ CREATE TABLE public.authors (
     bio text,
     date_of_birth date NOT NULL,
     country character varying(100) NOT NULL
-);
+); 
 
 
 ALTER TABLE public.authors OWNER TO postgres;
