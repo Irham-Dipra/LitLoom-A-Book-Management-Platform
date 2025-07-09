@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
 router.get('/book/:bookId', async (req, res) => {
   const { bookId } = req.params;
 
+  console.log('📖 Fetching reviews for book ID:', bookId);
+
   try {
     const result = await pool.query(
       `SELECT 
@@ -46,7 +48,7 @@ router.get('/book/:bookId', async (req, res) => {
         r.rating, 
         r.created_at, 
         r.updated_at,
-        u.name as user_name
+        u.username as user_name
       FROM reviews r
       JOIN users u ON r.user_id = u.id
       WHERE r.book_id = $1
@@ -54,10 +56,19 @@ router.get('/book/:bookId', async (req, res) => {
       [bookId]
     );
 
+    console.log('✅ Reviews fetched successfully:', result.rows.length, 'reviews found');
     res.json(result.rows);
   } catch (err) {
-    console.error('❌ Error fetching reviews:', err.message);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Error fetching reviews:', err);
+    console.error('❌ Error details:', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      position: err.position,
+      routine: err.routine
+    });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

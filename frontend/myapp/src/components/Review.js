@@ -8,13 +8,19 @@ const Review = ({
   body = 'This is the review body content...',
   reviewerName = 'Anonymous',
   rating = 5,
-  date = new Date().toLocaleDateString(),
+  created_at = new Date().toISOString(),
   initialUpvotes = 0,
   initialDownvotes = 0,
 }) => {
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const [userVote, setUserVote] = useState(null); // null, 'up', or 'down'
+
+  // Format the date from created_at timestamp
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
 
   // Check if user is logged in (you might need to adjust this based on your auth implementation)
   const isLoggedIn = () => {
@@ -104,7 +110,7 @@ const Review = ({
     <div className="review-card">
       <div className="review-header">
         <h3 className="review-title">{title}</h3>
-        <span className="review-date">{date}</span>
+        <span className="review-date">{formatDate(created_at)}</span>
       </div>
 
       <div className="review-body">

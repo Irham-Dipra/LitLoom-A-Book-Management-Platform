@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import './IndividualBook.css';
+import Review from '../components/Review';
 
 function IndividualBook() {
   const { id } = useParams(); // book ID
@@ -188,8 +189,19 @@ function IndividualBook() {
         )}
         {!reviewsLoading && !reviewsError && reviews.length > 0 && (
           <div className="reviews-list">
-            {/* TODO: Map through reviews and render Review components */}
-            <p>Found {reviews.length} review(s) - Review components will be rendered here</p>
+            {reviews.map((review) => (
+              <Review
+                key={review.id}
+                id={review.id}
+                title={review.title}
+                body={review.body}
+                reviewerName={review.user_name}
+                rating={review.rating}
+                created_at={review.created_at}
+                initialUpvotes={0}
+                initialDownvotes={0}
+              />
+            ))}
           </div>
         )}
       </div>
