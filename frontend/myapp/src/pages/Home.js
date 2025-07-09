@@ -7,6 +7,7 @@ import '../components/Navbar.css';
 import FilterBar from '../components/FilterBar';
 
 
+
 function Home() {
   const navigate = useNavigate();
 
