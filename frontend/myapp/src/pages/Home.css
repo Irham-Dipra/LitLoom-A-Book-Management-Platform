@@ -16,8 +16,7 @@
   animation: gradientShift 15s ease infinite;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 2rem;
+  justify-content: flex-start;
   box-sizing: border-box;
 }
 
@@ -55,6 +54,19 @@
 .home-login-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
+}
+
+/* Container for filter bar - positioned right after navbar */
+.filter-container {
+  width: 100%;
+  z-index: 999;
+}
+
+/* Content wrapper with smooth transition */
+.home-content {
+  padding: 2rem;
+  transition: all 0.3s ease;
+  flex: 1;
 }
 
 .book-section {
@@ -128,4 +140,39 @@
 
 .scroll-btn.right {
   right: -1.5rem;
+}
+
+/* No results message styling */
+.no-results-message {
+  color: white;
+  text-align: center;
+  padding: 3rem 2rem;
+  font-size: 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 2rem auto;
+  max-width: 600px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .home-content {
+    padding: 1rem;
+  }
+  
+  .no-results-message {
+    margin: 1rem;
+    padding: 2rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .home-logo {
+    font-size: 2.5rem;
+  }
+  
+  .book-section {
+    margin-top: 2rem;
+  }
 }
