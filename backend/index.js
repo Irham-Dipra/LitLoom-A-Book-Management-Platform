@@ -17,6 +17,8 @@ const wishlistRoutes = require('./routes/wishlist');
 const searchRoutes = require('./routes/search');
 const filterOptionsRoutes = require('./routes/filter-options');
 const addBookRoutes = require('./routes/addbook');
+const reviewRoutes = require('./routes/reviews');
+
 
 
 
@@ -27,6 +29,8 @@ app.use('/wishlist', wishlistRoutes);
 app.use('/search', searchRoutes);
 app.use('/filter-options', filterOptionsRoutes);
 app.use('/addBook', addBookRoutes);
+app.use('/reviews', reviewRoutes);
+
 
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params; 
