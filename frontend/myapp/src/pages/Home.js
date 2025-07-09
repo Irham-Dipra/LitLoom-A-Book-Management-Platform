@@ -1,26 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaUser, FaRegUserCircle } from 'react-icons/fa';
 import './Home.css';
 import Homescroll from '../components/Homescroll';
+import Navbar from '../components/Navbar';
+import '../components/Navbar.css';
+import FilterBar from '../components/FilterBar';
 
 
 function Home() {
   const navigate = useNavigate();
+
   const [sections, setSections] = useState([]);
-  const [loggedIn, setLoggedIn] = useState(false); // 🔑 login state
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Updated filters state to use arrays for multi-select
+  const [filters, setFilters] = useState({
+    language: [],
+    genre: [],
+    author: [],
+    publisher: [],
+    country: [],
+    pubDateRange: [1800, 2025],
+    ratingRange: [0, 5]
+  });
+
+  // Check if any filters are active
+  const hasActiveFilters = () => {
+    return (
+      filters.language.length > 0 ||
+      filters.genre.length > 0 ||
+      filters.author.length > 0 ||
+      filters.publisher.length > 0 ||
+      filters.country.length > 0 ||
+      (filters.pubDateRange && (filters.pubDateRange[0] !== 1800 || filters.pubDateRange[1] !== 2025)) ||
+      (filters.ratingRange && (filters.ratingRange[0] !== 0 || filters.ratingRange[1] !== 5))
+    );
+  };
+
+  // Toggle filter bar
+  const toggleFilters = () => setIsFilterOpen(prev => !prev);
 
   useEffect(() => {
-    const initializeHome = async () => {
-      // ✅ Check login status from localStorage
-      const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
-      setLoggedIn(isLoggedIn);
+    // ✅ Check login state
+    const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+    setLoggedIn(isLoggedIn);
 
-      // ✅ Fetch homepage book sections
+    // ✅ Fetch homepage sections
+    const fetchSections = async () => {
       try {
         const res = await fetch('http://localhost:3000/');
         const data = await res.json();
-
         if (!data.success || !data.data) throw new Error('Invalid response format');
 
         const sectionsArray = Object.values(data.data).map((section) => ({
@@ -34,12 +64,15 @@ function Home() {
       }
     };
 
-    initializeHome();
+    fetchSections();
   }, []);
 
-  const handleIconClick = () => {
-    if (loggedIn) navigate('/profile');
-    else navigate('/login');
+  // REMOVED: The conflicting filter options fetch - FilterBar will handle this
+
+  const handleSearch = (query) => {
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
   };
 
   const handleSearch = async (query) => {
@@ -57,22 +90,29 @@ function Home() {
 
   return (
     <div className="home-hero">
-      <div className="home-header">
-        <h1 className="home-logo">LitLoom</h1>
-        <button
-          className="home-login-btn icon-only"
-          onClick={handleIconClick}
-          title={loggedIn ? 'Profile' : 'Login'}
-        >
-          {loggedIn ? <FaRegUserCircle /> : <FaUser />}
-        </button>
+      <Navbar 
+        loggedIn={loggedIn} 
+        onSearch={handleSearch} 
+        onFilterToggle={toggleFilters}
+        hasActiveFilters={hasActiveFilters()}
+      />
+
+      {/* Filter container positioned right after navbar */}
+      <div className="filter-container">
+        <FilterBar
+          filters={filters}
+          setFilters={setFilters}
+          isOpen={isFilterOpen}
+          setIsOpen={setIsFilterOpen}
+        />
       </div>
 
-      
-
-      {sections.map((section, index) => (
-        <Homescroll key={index} title={section.title} books={section.books} />
-      ))}
+      <div className="home-content">
+        {/* ✅ Render all book sections (no filtering applied on home page) */}
+        {sections.map((section, index) => (
+          <Homescroll key={index} title={section.title} books={section.books} />
+        ))}
+      </div>
     </div>
   );
 }

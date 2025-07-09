@@ -15,6 +15,7 @@ const authRoutes = require('./routes/auth');
 const homeRoutes = require('./routes/home');
 const wishlistRoutes = require('./routes/wishlist');
 const searchRoutes = require('./routes/search');
+const filterOptionsRoutes = require('./routes/filter-options');
 const addBookRoutes = require('./routes/addbook');
 
 
@@ -24,8 +25,8 @@ app.use('/auth', authRoutes);
 app.use('/', homeRoutes);
 app.use('/wishlist', wishlistRoutes);
 app.use('/search', searchRoutes);
+app.use('/filter-options', filterOptionsRoutes);
 app.use('/addBook', addBookRoutes);
-
 
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params; 
