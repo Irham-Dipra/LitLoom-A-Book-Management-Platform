@@ -2,219 +2,192 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 
-// Search suggestions endpoint - returns book titles that start with the query
-router.get('/suggestions', async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q || q.trim().length === 0) {
-      return res.json([]);
-    }
-
-    const query = `
-      SELECT DISTINCT b.title, b.id, b.cover_image
-      FROM books b
-      WHERE LOWER(b.title) LIKE LOWER($1)
-      ORDER BY b.title
-      LIMIT 10
-    `;
-    
-    const result = await pool.query(query, [`${q.trim()}%`]);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Search suggestions error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Simple search endpoint for frontend
+// Unified search endpoint: either regular text search OR filtered search
 router.get('/', async (req, res) => {
   try {
-    const { q } = req.query;
-
-    if (!q || q.trim().length === 0) {
-      return res.json({ success: true, books: [] });
-    }
-
-    const query = `
-      SELECT DISTINCT
-        b.id,
-        b.title,
-        b.description,
-        b.cover_image,
-        b.publication_date,
-        g.name AS genre,
-        l.name AS language,
-        STRING_AGG(DISTINCT a.name, ', ') AS author_name
-      FROM books b
-      LEFT JOIN book_authors ba ON b.id = ba.book_id
-      LEFT JOIN authors a ON ba.author_id = a.id
-      LEFT JOIN genres g ON b.genre_id = g.id
-      LEFT JOIN languages l ON b.language_id = l.id
-      WHERE LOWER(b.title) LIKE LOWER($1)
-         OR LOWER(b.description) LIKE LOWER($1)
-         OR LOWER(a.name) LIKE LOWER($1)
-      GROUP BY b.id, g.name, l.name
-      ORDER BY b.title
-      LIMIT 20
-    `;
-
-    const result = await pool.query(query, [`%${q.trim()}%`]);
-    res.json({ success: true, books: result.rows });
-  } catch (err) {
-    console.error('❌ Simple search error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
-
-// Get filter options (genres, languages, publication years)
-router.get('/filters', async (req, res) => {
-  try {
-    // Get genres
-    const genresQuery = 'SELECT DISTINCT id, name FROM genres ORDER BY name';
-    const genresResult = await pool.query(genresQuery);
-
-    // Get languages
-    const languagesQuery = 'SELECT DISTINCT id, name FROM languages ORDER BY name';
-    const languagesResult = await pool.query(languagesQuery);
-
-    // Get publication years
-    const yearsQuery = `
-      SELECT DISTINCT EXTRACT(YEAR FROM publication_date) as year 
-      FROM books 
-      WHERE publication_date IS NOT NULL 
-      ORDER BY year DESC
-    `;
-    const yearsResult = await pool.query(yearsQuery);
-
-    // Get authors for author filter
-    const authorsQuery = 'SELECT DISTINCT id, name FROM authors ORDER BY name';
-    const authorsResult = await pool.query(authorsQuery);
-
-    res.json({
-      genres: genresResult.rows,
-      languages: languagesResult.rows,
-      years: yearsResult.rows.map(row => row.year),
-      authors: authorsResult.rows
-    });
-  } catch (error) {
-    console.error('Filter options error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Advanced search endpoint with filters
-router.get('/books', async (req, res) => {
-  try {
     const { 
-      q = '', 
-      genre, 
+      q, 
       language, 
-      year, 
+      genre, 
       author, 
-      page = 1, 
-      limit = 12,
-      sortBy = 'title',
-      sortOrder = 'ASC'
+      publisher, 
+      country, 
+      pubDateFrom, 
+      pubDateTo, 
+      ratingFrom, 
+      ratingTo, 
+      filtered 
     } = req.query;
 
-    const offset = (page - 1) * limit;
-    let whereConditions = [];
-    let queryParams = [];
-    let paramIndex = 1;
-
-    // Base query with joins
-    let baseQuery = `
-      FROM books b
-      LEFT JOIN book_authors ba ON b.id = ba.book_id
-      LEFT JOIN authors a ON ba.author_id = a.id
-      LEFT JOIN genres g ON b.genre_id = g.id
-      LEFT JOIN languages l ON b.language_id = l.id
-    `;
-
-    // Add search conditions
-    if (q && q.trim().length > 0) {
-      whereConditions.push(`(
-        LOWER(b.title) LIKE LOWER($${paramIndex}) OR 
-        LOWER(b.description) LIKE LOWER($${paramIndex}) OR
-        LOWER(a.name) LIKE LOWER($${paramIndex})
-      )`);
-      queryParams.push(`%${q.trim()}%`);
-      paramIndex++;
+    // Check if this is a filtered search
+    const isFilteredSearch = filtered === 'true';
+    
+    // For regular text search, q is required
+    if (!isFilteredSearch && (!q || q.trim().length === 0)) {
+      return res.json({ success: true, data: {} });
     }
 
-    if (genre) {
-      whereConditions.push(`b.genre_id = $${paramIndex}`);
-      queryParams.push(genre);
-      paramIndex++;
-    }
+    const data = {};
 
-    if (language) {
-      whereConditions.push(`b.language_id = $${paramIndex}`);
-      queryParams.push(language);
-      paramIndex++;
-    }
+    if (isFilteredSearch) {
+      // FILTERED SEARCH - only books with filters applied
+      let bookQuery = `
+        SELECT DISTINCT
+          b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
+          b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
+          b.created_at, b.added_by, a.name as "author_name",
+          l.name as "language_name", g.name as "genre_name", ph.name as "publisher_name"
+        FROM books b
+          JOIN book_authors ba ON b.id = ba.book_id
+          JOIN authors a ON ba.author_id = a.id
+          LEFT JOIN languages l ON b.language_id = l.id
+          LEFT JOIN genres g ON b.genre_id = g.id
+          LEFT JOIN publication_houses ph ON b.publication_house_id = ph.id
+        WHERE 1=1
+      `;
 
-    if (year) {
-      whereConditions.push(`EXTRACT(YEAR FROM b.publication_date) = $${paramIndex}`);
-      queryParams.push(year);
-      paramIndex++;
-    }
+      const queryParams = [];
+      let paramIndex = 1;
 
-    if (author) {
-      whereConditions.push(`a.id = $${paramIndex}`);
-      queryParams.push(author);
-      paramIndex++;
-    }
-
-    // Build WHERE clause
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Count total results
-    const countQuery = `
-      SELECT COUNT(DISTINCT b.id) as total
-      ${baseQuery}
-      ${whereClause}
-    `;
-    const countResult = await pool.query(countQuery, queryParams);
-    const totalBooks = parseInt(countResult.rows[0].total);
-
-    // Main search query
-    const searchQuery = `
-      SELECT DISTINCT
-        b.id,
-        b.title,
-        b.description,
-        b.cover_image,
-        b.publication_date,
-        g.name,
-        l.name,
-        STRING_AGG(DISTINCT a.name, ', ') as authors
-      ${baseQuery}
-      ${whereClause}
-      GROUP BY b.id, b.title, b.description, b.cover_image, b.publication_date, g.name, l.name
-      ORDER BY ${sortBy === 'title' ? 'b.title' : sortBy === 'date' ? 'b.publication_date' : 'b.title'} ${sortOrder}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-
-    queryParams.push(limit, offset);
-    const searchResult = await pool.query(searchQuery, queryParams);
-
-    res.json({
-      books: searchResult.rows,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalBooks / limit),
-        totalBooks: totalBooks,
-        hasNext: offset + limit < totalBooks,
-        hasPrev: page > 1
+      // Language filter
+      if (language) {
+        const languages = language.split(',').map(lang => lang.trim());
+        const languagePlaceholders = languages.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND b.language_id IN (${languagePlaceholders})`;
+        queryParams.push(...languages);
       }
-    });
 
-  } catch (error) {
-    console.error('Search books error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+      // Genre filter
+      if (genre) {
+        const genres = genre.split(',').map(g => g.trim());
+        const genrePlaceholders = genres.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND b.genre_id IN (${genrePlaceholders})`;
+        queryParams.push(...genres);
+      }
+
+      // Author filter
+      if (author) {
+        const authors = author.split(',').map(auth => auth.trim());
+        const authorPlaceholders = authors.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND ba.author_id IN (${authorPlaceholders})`;
+        queryParams.push(...authors);
+      }
+
+      // Publisher filter
+      if (publisher) {
+        const publishers = publisher.split(',').map(pub => pub.trim());
+        const publisherPlaceholders = publishers.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND b.publication_house_id IN (${publisherPlaceholders})`;
+        queryParams.push(...publishers);
+      }
+
+      // Country filter
+      if (country) {
+        const countries = country.split(',').map(c => c.trim());
+        const countryPlaceholders = countries.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND b.original_country IN (${countryPlaceholders})`;
+        queryParams.push(...countries);
+      }
+
+      // Publication date range filter
+      if (pubDateFrom) {
+        bookQuery += ` AND EXTRACT(YEAR FROM b.publication_date) >= $${paramIndex}`;
+        queryParams.push(parseInt(pubDateFrom));
+        paramIndex++;
+      }
+
+      if (pubDateTo) {
+        bookQuery += ` AND EXTRACT(YEAR FROM b.publication_date) <= $${paramIndex}`;
+        queryParams.push(parseInt(pubDateTo));
+        paramIndex++;
+      }
+
+      // Rating range filter
+      if (ratingFrom) {
+        bookQuery += ` AND b.average_rating >= $${paramIndex}`;
+        queryParams.push(parseFloat(ratingFrom));
+        paramIndex++;
+      }
+
+      if (ratingTo) {
+        bookQuery += ` AND b.average_rating <= $${paramIndex}`;
+        queryParams.push(parseFloat(ratingTo));
+        paramIndex++;
+      }
+
+      // Add ordering and limit
+      bookQuery += ` ORDER BY b.average_rating DESC, b.title ASC LIMIT 50`;
+
+      // Execute filtered books query
+      const booksResult = await pool.query(bookQuery, queryParams);
+      if (booksResult.rows.length > 0) data.books = booksResult.rows;
+
+      res.json({
+        success: true,
+        message: 'Filtered results fetched successfully',
+        data,
+        totalBooks: booksResult.rows.length,
+        isFiltered: true
+      });
+
+    } else {
+      // REGULAR TEXT SEARCH - books, authors, and characters
+      const keyword = `%${q.trim().toLowerCase()}%`;
+
+      // Search Books
+      const bookQuery = `
+        SELECT
+          b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
+          b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
+          b.created_at, b.added_by, a.name as "author_name"
+        FROM books b
+          JOIN book_authors ba ON b.id = ba.book_id
+          JOIN authors a ON ba.author_id = a.id
+        WHERE LOWER(b.title) LIKE $1
+        ORDER BY b.average_rating DESC, b.title ASC
+        LIMIT 20;
+      `;
+      const booksResult = await pool.query(bookQuery, [keyword]);
+      if (booksResult.rows.length > 0) data.books = booksResult.rows;
+
+      // Search Authors
+      const authorQuery = `
+        SELECT id, name, bio
+        FROM authors
+        WHERE LOWER(name) LIKE $1
+        ORDER BY name
+        LIMIT 20;
+      `;
+      const authorsResult = await pool.query(authorQuery, [keyword]);
+      if (authorsResult.rows.length > 0) data.authors = authorsResult.rows;
+
+      // Search Characters
+      const characterQuery = `
+        SELECT id, name, description
+        FROM book_characters
+        WHERE LOWER(name) LIKE $1
+        ORDER BY name
+        LIMIT 20;
+      `;
+      const charactersResult = await pool.query(characterQuery, [keyword]);
+      if (charactersResult.rows.length > 0) data.characters = charactersResult.rows;
+
+      res.json({
+        success: true,
+        message: 'Search results fetched successfully',
+        data,
+        query: q.trim(),
+        isFiltered: false
+      });
+    }
+
+  } catch (err) {
+    console.error('Error in /search:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch search results',
+      error: err.message
+    });
   }
 });
 
