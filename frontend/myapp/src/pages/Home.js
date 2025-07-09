@@ -5,6 +5,7 @@ import './Home.css';
 import Homescroll from '../components/Homescroll';
 import SearchBar from '../components/SearchBar';
 
+
 function Home() {
   const navigate = useNavigate();
   const [sections, setSections] = useState([]);
@@ -60,7 +61,6 @@ function Home() {
           {loggedIn ? <FaRegUserCircle /> : <FaUser />}
         </button>
       </div>
-
       <SearchBar onSearch={handleSearch} />
 
       {sections.map((section, index) => (
