@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import '../components/Navbar.css';
 import FilterBar from '../components/FilterBar';
 
+
 function Home() {
   const navigate = useNavigate();
 
@@ -74,6 +75,19 @@ function Home() {
     }
   };
 
+  const handleSearch = async (query) => {
+    try {
+      const res = await fetch(`http://localhost:3000/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+
+      if (!data.success || !data.books) throw new Error('Invalid search response');
+
+      setSections([{ title: `Search Results for "${query}"`, books: data.books }]);
+    } catch (err) {
+      console.error('❌ Error during search:', err.message);
+    }
+  };
+
   return (
     <div className="home-hero">
       <Navbar 
@@ -93,7 +107,6 @@ function Home() {
         />
       </div>
 
-      {/* Content wrapper */}
       <div className="home-content">
         {/* ✅ Render all book sections (no filtering applied on home page) */}
         {sections.map((section, index) => (

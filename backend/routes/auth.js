@@ -178,7 +178,7 @@ const verifyToken = (req, res, next) => {
 router.get('/profile', verifyToken, async (req, res) => {
   try {
     const user = await pool.query(
-      'SELECT id, email, username, first_name, last_name, bio, profile_picture_url, created_at FROM users WHERE id = $1',
+      'SELECT id, email, username, first_name, last_name, bio, profile_picture_url, created_at,EXISTS(SELECT 1 FROM moderator_accounts m WHERE m.user_id = u.id) AS is_moderator FROM users u WHERE id = $1',
       [req.user.id]
     );
 

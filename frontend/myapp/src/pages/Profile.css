@@ -41,6 +41,40 @@
   overflow-x: hidden;
 }
 
+.add-book-btn {
+  background-color: #d32f2f;
+  color: white;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.add-book-btn:hover {
+  background-color: #b71c1c;
+}
+
+
+.moderator-btn {
+  background-color: #2c3e50;
+  color: white;
+  font-weight: bold;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  font-size: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.moderator-btn:hover {
+  background-color: #34495e;
+}
+
 .profile-container {
   display: grid;
   grid-template-columns: 350px 1fr;
