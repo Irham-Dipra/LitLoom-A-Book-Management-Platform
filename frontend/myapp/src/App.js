@@ -8,24 +8,21 @@ import Profile from './pages/Profile';
 import Wishlist from './pages/Wishlist';
 import SearchResults from './pages/SearchResults';
 import AddBook from './pages/AddBook';
-
-
-
-
+import MyBooks from './pages/MyBooks';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/search" element={<SearchResults />} /> {/* new route */}
+        <Route path="/search" element={<SearchResults />} />
         <Route path="/login" element={<Login />} />
         <Route path="/book/:id" element={<IndividualBook />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/addbook" element={<AddBook />} />
-        
+        <Route path="/my-books" element={<MyBooks />} />
       </Routes>
     </Router>
   );
