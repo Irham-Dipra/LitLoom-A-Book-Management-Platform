@@ -1,0 +1,360 @@
+// src/pages/MyBooks.jsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import { FaEdit, FaTimes, FaRss } from 'react-icons/fa';
+import { BiGridAlt, BiListUl } from 'react-icons/bi';
+import './MyBooks.css';
+
+function MyBooks() {
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedShelf, setSelectedShelf] = useState('all');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [sortBy, setSortBy] = useState('date_added');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [booksPerPage, setBooksPerPage] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [shelves, setShelves] = useState([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchBooks();
+    fetchShelves();
+    checkAuthStatus();
+  }, [selectedShelf, sortBy, sortOrder, currentPage, booksPerPage]);
+
+  const checkAuthStatus = () => {
+    const token = localStorage.getItem('token');
+    setLoggedIn(!!token);
+  };
+
+  const fetchBooks = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/myBooks/books?shelf=${selectedShelf}&sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBooks(data.books || []);
+      }
+    } catch (error) {
+      console.error('Error fetching books:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchShelves = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/myBooks/shelves', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setShelves(data.shelves || []);
+      }
+    } catch (error) {
+      console.error('Error fetching shelves:', error);
+    }
+  };
+
+  const handleShelfChange = (shelf) => {
+    setSelectedShelf(shelf);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1);
+  };
+
+  const handleBookClick = (bookId) => {
+    navigate(`/book/${bookId}`);
+  };
+
+  const renderStars = (rating) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span key={i} className={`star ${i <= rating ? 'filled' : ''}`}>
+          ★
+        </span>
+      );
+    }
+    return stars;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'not set';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const getShelfCount = (shelfName) => {
+    const shelf = shelves.find(s => s.name === shelfName);
+    return shelf ? shelf.count : 0;
+  };
+
+  if (loading) {
+    return (
+      <div className="mybooks-container">
+        <Navbar loggedIn={loggedIn} />
+        <div className="loading-spinner">Loading your books...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mybooks-container">
+      <Navbar loggedIn={loggedIn} />
+      
+      <div className="mybooks-content">
+        <div className="mybooks-header">
+          <h1>My Books</h1>
+          <div className="mybooks-actions">
+            <button className="batch-edit-btn">Batch Edit</button>
+            <button className="settings-btn">Settings</button>
+            <button className="stats-btn">Stats</button>
+            <button className="print-btn">Print</button>
+            <div className="view-toggle">
+              <button 
+                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
+                onClick={() => setViewMode('table')}
+              >
+                <BiListUl />
+              </button>
+              <button 
+                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                onClick={() => setViewMode('grid')}
+              >
+                <BiGridAlt />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mybooks-main">
+          <div className="mybooks-sidebar">
+            <div className="bookshelves-section">
+              <h3>
+                Bookshelves 
+                <button className="edit-shelves-btn">
+                  <FaEdit />
+                </button>
+              </h3>
+              <div className="shelf-list">
+                <div 
+                  className={`shelf-item ${selectedShelf === 'all' ? 'active' : ''}`}
+                  onClick={() => handleShelfChange('all')}
+                >
+                  <span>All ({books.length})</span>
+                </div>
+                <div 
+                  className={`shelf-item ${selectedShelf === 'want-to-read' ? 'active' : ''}`}
+                  onClick={() => handleShelfChange('want-to-read')}
+                >
+                  <span>Want to Read ({getShelfCount('want-to-read')})</span>
+                </div>
+                <div 
+                  className={`shelf-item ${selectedShelf === 'currently-reading' ? 'active' : ''}`}
+                  onClick={() => handleShelfChange('currently-reading')}
+                >
+                  <span>Currently Reading ({getShelfCount('currently-reading')})</span>
+                </div>
+                <div 
+                  className={`shelf-item ${selectedShelf === 'read' ? 'active' : ''}`}
+                  onClick={() => handleShelfChange('read')}
+                >
+                  <span>Read ({getShelfCount('read')})</span>
+                </div>
+              </div>
+              <button className="add-shelf-btn">Add shelf</button>
+            </div>
+
+            <div className="activity-section">
+              <h3>Your reading activity</h3>
+              <ul className="activity-list">
+                <li><a href="/review-drafts">Review Drafts</a></li>
+                <li><a href="/kindle-highlights">Kindle Notes & Highlights</a></li>
+                <li><a href="/reading-challenge">Reading Challenge</a></li>
+                <li><a href="/year-in-books">Year in Books</a></li>
+                <li><a href="/reading-stats">Reading stats</a></li>
+              </ul>
+            </div>
+
+            <div className="tools-section">
+              <h3>Tools</h3>
+              <ul className="tools-list">
+                <li><a href="/find-duplicates">Find duplicates</a></li>
+                <li><a href="/widgets">Widgets</a></li>
+                <li><a href="/import-export">Import and export</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mybooks-main-content">
+            <div className="books-controls">
+              <div className="controls-left">
+                <span>per page: </span>
+                <select 
+                  value={booksPerPage} 
+                  onChange={(e) => setBooksPerPage(parseInt(e.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span> sort: </span>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => handleSortChange(e.target.value)}
+                >
+                  <option value="date_added">Date added</option>
+                  <option value="date_read">Date read</option>
+                  <option value="title">Title</option>
+                  <option value="author">Author</option>
+                  <option value="rating">Rating</option>
+                </select>
+                <div className="sort-order">
+                  <label>
+                    <input 
+                      type="radio" 
+                      value="asc" 
+                      checked={sortOrder === 'asc'}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                    />
+                    asc.
+                  </label>
+                  <label>
+                    <input 
+                      type="radio" 
+                      value="desc" 
+                      checked={sortOrder === 'desc'}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                    />
+                    desc.
+                  </label>
+                </div>
+              </div>
+              <div className="controls-right">
+                <button className="rss-btn">
+                  <FaRss />
+                </button>
+              </div>
+            </div>
+
+            {books.length === 0 ? (
+              <div className="no-books-message">
+                <p>No books found in your library.</p>
+                <button onClick={() => navigate('/browse')}>Browse Books</button>
+              </div>
+            ) : (
+              <div className="books-table-container">
+                <table className="books-table">
+                  <thead>
+                    <tr>
+                      <th>cover</th>
+                      <th onClick={() => handleSortChange('title')}>
+                        title {sortBy === 'title' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => handleSortChange('author')}>
+                        author {sortBy === 'author' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th>avg rating</th>
+                      <th>rating</th>
+                      <th>shelves</th>
+                      <th>review</th>
+                      <th onClick={() => handleSortChange('date_read')}>
+                        date read {sortBy === 'date_read' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th onClick={() => handleSortChange('date_added')}>
+                        date added {sortBy === 'date_added' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {books.map((book) => (
+                      <tr key={book.id} className="book-row">
+                        <td className="book-cover">
+                          <img 
+                            src={book.cover_url || '/default-book-cover.jpg'} 
+                            alt={book.title}
+                            onClick={() => handleBookClick(book.id)}
+                          />
+                        </td>
+                        <td className="book-title">
+                          <a href="#" onClick={() => handleBookClick(book.id)}>
+                            {book.title}
+                          </a>
+                        </td>
+                        <td className="book-author">{book.author}</td>
+                        <td className="avg-rating">
+                          <div className="rating-stars">
+                            {renderStars(Math.round(book.avg_rating || 0))}
+                          </div>
+                          <span className="rating-text">{book.avg_rating?.toFixed(2) || 'N/A'}</span>
+                        </td>
+                        <td className="user-rating">
+                          <div className="rating-stars">
+                            {renderStars(book.user_rating || 0)}
+                          </div>
+                        </td>
+                        <td className="book-shelves">
+                          <span className="shelf-tag">{book.shelf || 'to-read'}</span>
+                          <button className="edit-shelf-btn">[edit]</button>
+                        </td>
+                        <td className="book-review">
+                          {book.review ? (
+                            <a href={`/review/${book.review_id}`}>View review</a>
+                          ) : (
+                            <a href={`/write-review/${book.id}`}>Write a review</a>
+                          )}
+                        </td>
+                        <td className="date-read">
+                          {book.date_read ? formatDate(book.date_read) : 'not set'}
+                        </td>
+                        <td className="date-added">
+                          {formatDate(book.date_added)}
+                          <div className="edit-actions">
+                            <button className="edit-btn">edit</button>
+                            <button className="remove-btn">
+                              <FaTimes />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default MyBooks;

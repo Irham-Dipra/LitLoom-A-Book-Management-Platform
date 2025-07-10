@@ -1,0 +1,498 @@
+/* src/pages/MyBooks.css */
+.mybooks-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: white;
+}
+
+.mybooks-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.mybooks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.mybooks-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+}
+
+.mybooks-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mybooks-actions button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.mybooks-actions button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.2rem;
+}
+
+.view-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 0.5rem !important;
+  border-radius: 6px !important;
+  font-size: 1.2rem !important;
+  transform: none !important;
+}
+
+.view-btn.active {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.mybooks-main {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.mybooks-sidebar {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mybooks-sidebar h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-shelves-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.edit-shelves-btn:hover {
+  color: white;
+}
+
+.shelf-list {
+  margin-bottom: 2rem;
+}
+
+.shelf-item {
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shelf-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.shelf-item.active {
+  background: rgba(255, 255, 255, 0.2);
+  border-left: 3px solid white;
+}
+
+.add-shelf-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+.add-shelf-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.activity-section,
+.tools-section {
+  margin-top: 2rem;
+}
+
+.activity-list,
+.tools-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-list li,
+.tools-list li {
+  margin-bottom: 0.5rem;
+}
+
+.activity-list a,
+.tools-list a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.activity-list a:hover,
+.tools-list a:hover {
+  color: white;
+}
+
+.mybooks-main-content {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.books-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.controls-left select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.controls-left select option {
+  background: #2c5364;
+  color: white;
+}
+
+.sort-order {
+  display: flex;
+  gap: 1rem;
+}
+
+.sort-order label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.sort-order input[type="radio"] {
+  accent-color: white;
+}
+
+.rss-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.rss-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.no-books-message {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.no-books-message button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.no-books-message button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.books-table-container {
+  overflow-x: auto;
+}
+
+.books-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.books-table th {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.8rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.books-table th:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.books-table td {
+  padding: 1rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: top;
+}
+
+.book-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.book-cover img {
+  width: 50px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.book-cover img:hover {
+  transform: scale(1.05);
+}
+
+.book-title a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.book-title a:hover {
+  color: white;
+}
+
+.book-author {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rating-stars {
+  display: flex;
+  gap: 0.1rem;
+  margin-bottom: 0.2rem;
+}
+
+.star {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 1rem;
+}
+
+.star.filled {
+  color: #ffd700;
+}
+
+.rating-text {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.shelf-tag {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+}
+
+.edit-shelf-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.3s ease;
+}
+
+.edit-shelf-btn:hover {
+  color: white;
+}
+
+.book-review a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.book-review a:hover {
+  color: white;
+}
+
+.date-read,
+.date-added {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-btn,
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.3s ease;
+}
+
+.edit-btn:hover {
+  color: white;
+}
+
+.remove-btn:hover {
+  color: #ff6b6b;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .mybooks-main {
+    grid-template-columns: 220px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .mybooks-content {
+    padding: 1rem;
+  }
+  
+  .mybooks-main {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .mybooks-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .mybooks-header h1 {
+    font-size: 2rem;
+  }
+  
+  .mybooks-actions {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .books-controls {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .controls-left {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .books-table {
+    font-size: 0.8rem;
+  }
+  
+  .books-table th,
+  .books-table td {
+    padding: 0.5rem 0.3rem;
+  }
+  
+  .book-cover img {
+    width: 40px;
+    height: 55px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mybooks-content {
+    padding: 0.5rem;
+  }
+  
+  .mybooks-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .mybooks-actions button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
