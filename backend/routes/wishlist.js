@@ -54,9 +54,9 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Check if book is already in wishlist
+    // Check if book is already in wishlist (want-to-read shelf)
     const existingWish = await pool.query(
-      'SELECT * FROM wished_books WHERE user_id = $1 AND book_id = $2',
+      'SELECT * FROM user_books WHERE user_id = $1 AND book_id = $2',
       [user_id, book_id]
     );
 
@@ -67,10 +67,10 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
-    // Add to wishlist
+    // Add to wishlist (want-to-read shelf)
     const newWish = await pool.query(
-      'INSERT INTO wished_books (user_id, book_id) VALUES ($1, $2) RETURNING *',
-      [user_id, book_id]
+      'INSERT INTO user_books (user_id, book_id, shelf) VALUES ($1, $2, $3) RETURNING *',
+      [user_id, book_id, 'want-to-read']
     );
 
     res.status(201).json({
@@ -94,11 +94,11 @@ router.get('/', verifyToken, async (req, res) => {
     const user_id = req.user.id;
 
     const wishlist = await pool.query(
-      `SELECT wb.*, b.* 
-       FROM wished_books wb 
-       JOIN books b ON wb.book_id = b.id 
-       WHERE wb.user_id = $1`,
-      [user_id]
+      `SELECT ub.*, b.* 
+       FROM user_books ub 
+       JOIN books b ON ub.book_id = b.id 
+       WHERE ub.user_id = $1 AND ub.shelf = $2`,
+      [user_id, 'want-to-read']
     );
 
     res.json({
@@ -124,8 +124,8 @@ router.delete('/:book_id', verifyToken, async (req, res) => {
     const user_id = req.user.id;
 
     const result = await pool.query(
-      'DELETE FROM wished_books WHERE user_id = $1 AND book_id = $2 RETURNING *',
-      [user_id, book_id]
+      'DELETE FROM user_books WHERE user_id = $1 AND book_id = $2 AND shelf = $3 RETURNING *',
+      [user_id, book_id, 'want-to-read']
     );
 
     if (result.rows.length === 0) {
