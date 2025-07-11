@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { FaEdit, FaTimes, FaRss } from 'react-icons/fa';
 import { BiGridAlt, BiListUl } from 'react-icons/bi';
+import RatingComponent from '../components/RatingComponent';
 import './MyBooks.css';
 
 function MyBooks() {
@@ -87,6 +88,37 @@ function MyBooks() {
 
   const handleBookClick = (bookId) => {
     navigate(`/book/${bookId}`);
+  };
+
+  const handleRatingChange = async (bookId, rating) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      // Update the book rating in the local state
+      setBooks(books.map(book => 
+        book.id === bookId ? { ...book, user_rating: rating } : book
+      ));
+
+      console.log('✅ Rating updated successfully!');
+      
+    } catch (error) {
+      console.error('Failed to update rating:', error);
+      alert('Failed to update rating. Please try again.');
+    }
   };
 
   const renderStars = (rating) => {
@@ -317,9 +349,12 @@ function MyBooks() {
                           <span className="rating-text">{book.avg_rating?.toFixed(2) || 'N/A'}</span>
                         </td>
                         <td className="user-rating">
-                          <div className="rating-stars">
-                            {renderStars(book.user_rating || 0)}
-                          </div>
+                          <RatingComponent
+                            currentRating={book.user_rating || 0}
+                            onRatingChange={(rating) => handleRatingChange(book.id, rating)}
+                            isInteractive={true}
+                            size="small"
+                          />
                         </td>
                         <td className="book-shelves">
                           <span className="shelf-tag">{book.shelf || 'to-read'}</span>

@@ -1,11 +1,11 @@
-// backend/routes/userBooks.js
+// backend/routes/userBooks.js - FIXED VERSION
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const pool = require('../db'); // Changed from '../config/database' to match auth.js
+const pool = require('../db');
 
 const router = express.Router();
 
-// Middleware to verify JWT token (matching auth.js pattern)
+// Middleware to verify JWT token
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
 
@@ -45,23 +45,29 @@ router.get('/books', verifyToken, async (req, res) => {
 
     const offset = (page - 1) * limit;
     
-    // Build the query based on shelf filter
+    // Build the query based on shelf filter - FIXED to use correct table/column names
     let query = `
       SELECT 
         b.id,
         b.title,
-        b.author,
-        b.cover_url,
-        b.avg_rating,
+        a.name as author,
+        b.cover_image as cover_url,
+        COALESCE(b.average_rating, 0)::float as avg_rating,
         ub.shelf,
         ub.user_rating,
         ub.date_added,
         ub.date_read,
         ub.review_id,
-        r.content as review
+        r.body as review,
+        g.name as genre,
+        l.name as language
       FROM books b
       INNER JOIN user_books ub ON b.id = ub.book_id
+      INNER JOIN book_authors ba ON b.id = ba.book_id
+      INNER JOIN authors a ON ba.author_id = a.id
       LEFT JOIN reviews r ON ub.review_id = r.id
+      LEFT JOIN genres g ON b.genre_id = g.id
+      LEFT JOIN languages l ON b.language_id = l.id
       WHERE ub.user_id = $1
     `;
     
@@ -75,15 +81,17 @@ router.get('/books', verifyToken, async (req, res) => {
       queryParams.push(shelf);
     }
 
-    // Add sorting
+    // Add sorting - FIXED to use correct column names
     const validSortFields = ['date_added', 'date_read', 'title', 'author', 'rating'];
     const sortField = validSortFields.includes(sort) ? sort : 'date_added';
     const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
     
     if (sortField === 'rating') {
       query += ` ORDER BY ub.user_rating ${sortOrder}`;
-    } else if (sortField === 'title' || sortField === 'author') {
-      query += ` ORDER BY b.${sortField} ${sortOrder}`;
+    } else if (sortField === 'title') {
+      query += ` ORDER BY b.title ${sortOrder}`;
+    } else if (sortField === 'author') {
+      query += ` ORDER BY a.name ${sortOrder}`;
     } else {
       query += ` ORDER BY ub.${sortField} ${sortOrder}`;
     }
@@ -114,7 +122,7 @@ router.get('/books', verifyToken, async (req, res) => {
     }
 
     const countResult = await pool.query(countQuery, countParams);
-    const totalBooks = countResult.rows[0].total;
+    const totalBooks = parseInt(countResult.rows[0].total);
 
     res.json({
       success: true,
@@ -178,7 +186,6 @@ router.post('/books', [
   body('shelf').optional().isIn(['want-to-read', 'currently-reading', 'read']).withMessage('Invalid shelf value')
 ], verifyToken, async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -189,7 +196,7 @@ router.post('/books', [
     }
 
     const userId = req.user.id;
-    const { bookId, shelf = 'want-to-read' } = req.body;
+    const { bookId, shelf } = req.body;
 
     // Check if book exists
     const bookExists = await pool.query('SELECT id FROM books WHERE id = $1', [bookId]);
@@ -216,14 +223,16 @@ router.post('/books', [
     // Add book to user's library
     const insertQuery = `
       INSERT INTO user_books (user_id, book_id, shelf, date_added)
-      VALUES ($1, $2, $3, NOW())
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+      RETURNING id
     `;
 
-    await pool.query(insertQuery, [userId, bookId, shelf]);
+    const result = await pool.query(insertQuery, [userId, bookId, shelf || null]);
 
     res.json({ 
       success: true,
-      message: 'Book added to library successfully' 
+      message: 'Book added to library successfully',
+      userBookId: result.rows[0].id
     });
 
   } catch (error) {
@@ -239,10 +248,10 @@ router.post('/books', [
 router.put('/books/:bookId', [
   body('shelf').optional().isIn(['want-to-read', 'currently-reading', 'read']).withMessage('Invalid shelf value'),
   body('rating').optional().isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-  body('dateRead').optional().isISO8601().withMessage('Invalid date format')
+  body('dateRead').optional().isISO8601().withMessage('Invalid date format'),
+  body('notes').optional().isString().withMessage('Notes must be a string')
 ], verifyToken, async (req, res) => {
   try {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
@@ -254,7 +263,7 @@ router.put('/books/:bookId', [
 
     const userId = req.user.id;
     const { bookId } = req.params;
-    const { shelf, rating, dateRead } = req.body;
+    const { shelf, rating, dateRead, notes } = req.body;
 
     // Check if book is in user's library
     const existingEntry = await pool.query(
@@ -279,6 +288,13 @@ router.put('/books/:bookId', [
       paramCount++;
       updates.push(`shelf = $${paramCount}`);
       updateParams.push(shelf);
+      
+      // If marking as read, set date_read to now if not provided
+      if (shelf === 'read' && !dateRead) {
+        paramCount++;
+        updates.push(`date_read = $${paramCount}`);
+        updateParams.push(new Date());
+      }
     }
 
     if (rating !== undefined) {
@@ -293,6 +309,12 @@ router.put('/books/:bookId', [
       updateParams.push(dateRead);
     }
 
+    if (notes !== undefined) {
+      paramCount++;
+      updates.push(`notes = $${paramCount}`);
+      updateParams.push(notes);
+    }
+
     if (updates.length === 0) {
       return res.status(400).json({ 
         success: false,
@@ -305,6 +327,34 @@ router.put('/books/:bookId', [
     updateParams.push(userId, bookId);
 
     await pool.query(updateQuery, updateParams);
+
+    // If rating was updated, also save to ratings table
+    if (rating !== undefined) {
+      try {
+        // Check if rating already exists in ratings table
+        const existingRating = await pool.query(
+          'SELECT id FROM ratings WHERE user_id = $1 AND book_id = $2',
+          [userId, bookId]
+        );
+
+        if (existingRating.rows.length > 0) {
+          // Update existing rating
+          await pool.query(
+            'UPDATE ratings SET value = $1, created_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND book_id = $3',
+            [rating, userId, bookId]
+          );
+        } else {
+          // Insert new rating
+          await pool.query(
+            'INSERT INTO ratings (user_id, book_id, value, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
+            [userId, bookId, rating]
+          );
+        }
+      } catch (ratingError) {
+        console.error('Error updating ratings table:', ratingError);
+        // Don't fail the main request if ratings table update fails
+      }
+    }
 
     res.json({ 
       success: true,
@@ -361,7 +411,7 @@ router.get('/stats', verifyToken, async (req, res) => {
         COUNT(CASE WHEN shelf = 'read' THEN 1 END) as books_read,
         COUNT(CASE WHEN shelf = 'currently-reading' THEN 1 END) as currently_reading,
         COUNT(CASE WHEN shelf = 'want-to-read' THEN 1 END) as want_to_read,
-        AVG(CASE WHEN user_rating > 0 THEN user_rating END) as avg_rating,
+        ROUND(AVG(CASE WHEN user_rating > 0 THEN user_rating END), 2) as avg_rating,
         COUNT(CASE WHEN user_rating > 0 THEN 1 END) as rated_books
       FROM user_books 
       WHERE user_id = $1
@@ -369,16 +419,16 @@ router.get('/stats', verifyToken, async (req, res) => {
 
     const stats = await pool.query(statsQuery, [userId]);
 
-    // Get reading activity by month
+    // Get reading activity by month (last 12 months)
     const monthlyQuery = `
       SELECT 
         TO_CHAR(date_read, 'YYYY-MM') as month,
         COUNT(*) as books_read
       FROM user_books 
-      WHERE user_id = $1 AND date_read IS NOT NULL
+      WHERE user_id = $1 AND date_read IS NOT NULL 
+        AND date_read >= NOW() - INTERVAL '12 months'
       GROUP BY TO_CHAR(date_read, 'YYYY-MM')
       ORDER BY month DESC
-      LIMIT 12
     `;
 
     const monthlyStats = await pool.query(monthlyQuery, [userId]);
