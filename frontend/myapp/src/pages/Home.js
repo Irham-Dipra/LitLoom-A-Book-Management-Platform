@@ -87,7 +87,6 @@ function Home() {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
     }
   };
-
   return (
     <div className="home-hero">
       <Navbar 
