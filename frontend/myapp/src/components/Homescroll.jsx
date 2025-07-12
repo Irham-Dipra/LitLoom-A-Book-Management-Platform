@@ -34,6 +34,10 @@ function Homescroll({ title, books }) {
                 author={book.author_name || 'Unknown Author'}
                 averageRating={book.average_rating}
                 coverUrl={book.cover_image}
+                userRating={book.user_rating || 0}
+                isRead={book.shelf === 'read'}
+                isInUserLibrary={book.shelf !== null}
+                shelf={book.shelf}
               />
             </div>
           ))}
