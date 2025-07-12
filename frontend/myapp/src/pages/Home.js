@@ -50,7 +50,19 @@ function Home() {
     // ✅ Fetch homepage sections
     const fetchSections = async () => {
       try {
-        const res = await fetch('http://localhost:3000/');
+        // Check if user is logged in and get token
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        
+        const headers = {
+          'Content-Type': 'application/json'
+        };
+        
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch('http://localhost:3000/', { headers });
         const data = await res.json();
         if (!data.success || !data.data) throw new Error('Invalid response format');
 
