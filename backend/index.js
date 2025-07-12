@@ -16,7 +16,7 @@ const homeRoutes = require('./routes/home');
 const wishlistRoutes = require('./routes/wishlist');
 const searchRoutes = require('./routes/search');
 const filterOptionsRoutes = require('./routes/filter-options');
-const addBookRoutes = require('./routes/addbook');
+const addBookRoutes = require('./routes/addBook');
 const reviewRoutes = require('./routes/reviews');
 const userBooksRoutes = require('./routes/userBooks');
 
