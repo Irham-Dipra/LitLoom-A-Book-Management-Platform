@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import './BookCard.css';
 import { useNavigate } from 'react-router-dom';
-import { FaStar, FaPlus, FaCheck } from 'react-icons/fa';
+import { FaStar, FaPlus, FaCheck, FaCheckCircle } from 'react-icons/fa';
+import RatingComponent from './RatingComponent';
 
 const BookCard = ({
   id,
@@ -9,10 +10,18 @@ const BookCard = ({
   author = 'Author Name',
   averageRating = 4.5,
   coverUrl = '',
+  userRating = 0,
+  isInUserLibrary = false,
+  shelf = null,
+  isRead = false,
 }) => {
   const navigate = useNavigate();
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const [currentUserRating, setCurrentUserRating] = useState(userRating);
+  const [isRating, setIsRating] = useState(false);
+  const [currentReadStatus, setCurrentReadStatus] = useState(isRead);
+  const [isMarkingAsRead, setIsMarkingAsRead] = useState(false);
 
   // Check if user is logged in (you might need to adjust this based on your auth implementation)
   const isLoggedIn = () => {
@@ -256,6 +265,152 @@ const BookCard = ({
     }
   };
 
+  const handleRatingChange = async (rating) => {
+    if (!isLoggedIn()) {
+      navigate('/login');
+      return;
+    }
+
+    if (!isInUserLibrary) {
+      await addBookToLibrary(rating);
+      return;
+    }
+
+    setIsRating(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      const response = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      setCurrentUserRating(rating);
+      console.log('✅ Rating updated successfully!');
+      
+    } catch (error) {
+      console.error('Failed to update rating:', error);
+      alert('Failed to update rating. Please try again.');
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  const addBookToLibrary = async (rating) => {
+    setIsRating(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bookId: id
+          // No shelf specified - will be null
+        })
+      });
+
+      if (!addResponse.ok) {
+        throw new Error('Failed to add book to library');
+      }
+
+      const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!rateResponse.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      setCurrentUserRating(rating);
+      console.log('✅ Book added to library and rated successfully!');
+      
+    } catch (error) {
+      console.error('Failed to add book and rate:', error);
+      alert('Failed to add book and rate. Please try again.');
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  const handleMarkAsRead = async (e) => {
+    e.stopPropagation();
+
+    if (!isLoggedIn()) {
+      navigate('/login');
+      return;
+    }
+
+    setIsMarkingAsRead(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      if (!isInUserLibrary) {
+        // Add book to library first with "read" shelf
+        const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bookId: id,
+            shelf: 'read'
+          })
+        });
+
+        if (!addResponse.ok) {
+          throw new Error('Failed to add book to library');
+        }
+      } else {
+        // Update existing book to "read" shelf
+        const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            shelf: 'read'
+          })
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update book status');
+        }
+      }
+
+      setCurrentReadStatus(true);
+      console.log('✅ Book marked as read successfully!');
+      
+    } catch (error) {
+      console.error('Failed to mark book as read:', error);
+      alert('Failed to mark book as read. Please try again.');
+    } finally {
+      setIsMarkingAsRead(false);
+    }
+  };
+
   return (
     <div className="book-card" onClick={handleCardClick}>
       <div
@@ -263,17 +418,24 @@ const BookCard = ({
         style={{
           backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
         }}
-      />
+      >
+        {currentReadStatus && (
+          <div className="read-indicator">
+            <FaCheckCircle className="read-tick" />
+          </div>
+        )}
+      </div>
 
       <div className="book-details">
         <div className="rating-row">
           <span className="avg-rating">
             <FaStar className="star-icon yellow" /> {averageRating}
           </span>
-          <FaStar
-            className="star-icon interactive"
-            onClick={handlePremiumRedirect}
-            title="Rate (Premium)"
+          <RatingComponent
+            currentRating={currentUserRating}
+            onRatingChange={handleRatingChange}
+            isInteractive={true}
+            size="small"
           />
         </div>
 
@@ -281,23 +443,44 @@ const BookCard = ({
         <div className="book-author">{author}</div>
       </div>
 
-      <div 
-        className={`wishlist-section ${isInWishlist ? 'in-wishlist' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
-        onClick={handleWishlistClick}
-      >
-        {isAddingToWishlist ? (
-          <>
-            <div className="loading-spinner" /> Adding...
-          </>
-        ) : isInWishlist ? (
-          <>
-            <FaCheck className="check-icon" /> In Wishlist
-          </>
-        ) : (
-          <>
-            <FaPlus className="plus-icon" /> Wishlist
-          </>
-        )}
+      <div className="book-actions">
+        <div 
+          className={`read-section ${currentReadStatus ? 'is-read' : ''} ${isMarkingAsRead ? 'loading' : ''}`}
+          onClick={handleMarkAsRead}
+        >
+          {isMarkingAsRead ? (
+            <>
+              <div className="loading-spinner" /> Marking...
+            </>
+          ) : currentReadStatus ? (
+            <>
+              <FaCheckCircle className="read-icon" /> Read
+            </>
+          ) : (
+            <>
+              <FaCheckCircle className="read-icon" /> Mark as Read
+            </>
+          )}
+        </div>
+
+        <div 
+          className={`wishlist-section ${isInWishlist ? 'in-wishlist' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
+          onClick={handleWishlistClick}
+        >
+          {isAddingToWishlist ? (
+            <>
+              <div className="loading-spinner" /> Adding...
+            </>
+          ) : isInWishlist ? (
+            <>
+              <FaCheck className="check-icon" /> In Wishlist
+            </>
+          ) : (
+            <>
+              <FaPlus className="plus-icon" /> Wishlist
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

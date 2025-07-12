@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
+import RatingComponent from '../components/RatingComponent';
 import './IndividualBook.css';
 import Review from '../components/Review';
 
 function IndividualBook() {
-  const { id } = useParams(); // book ID
+  
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userRating, setUserRating] = useState(0);
+  const [isRating, setIsRating] = useState(false);
 
   const [loggedIn, setLoggedIn] = useState(false);
   const [userId, setUserId] = useState(null);
@@ -112,6 +117,61 @@ function IndividualBook() {
       }
     } catch (err) {
       setReviewMessage(`❌ ${err.message}`);
+
+  const isLoggedIn = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    return token && token.trim() !== '' && token !== 'null';
+  };
+
+  const handleRatingChange = async (rating) => {
+    if (!isLoggedIn()) {
+      navigate('/login');
+      return;
+    }
+
+    setIsRating(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      // First add book to library if not already added (without shelf)
+      const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bookId: id
+          // No shelf specified - will be null
+        })
+      });
+
+      // It's okay if this fails (book might already be in library)
+      
+      // Then rate the book
+      const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
+
+      if (!rateResponse.ok) {
+        throw new Error('Failed to update rating');
+      }
+
+      setUserRating(rating);
+      alert('Rating submitted successfully!');
+      
+    } catch (error) {
+      console.error('Failed to rate book:', error);
+      alert('Failed to rate book. Please try again.');
+    } finally {
+      setIsRating(false);
     }
   };
 
@@ -204,6 +264,16 @@ function IndividualBook() {
             ))}
           </div>
         )}
+        <div className="user-rating-section">
+          <h3>Rate this book:</h3>
+          <RatingComponent
+            currentRating={userRating}
+            onRatingChange={handleRatingChange}
+            isInteractive={true}
+            size="large"
+          />
+        </div>
+        <p className="book-description">{book.description || 'No description available'}</p>
       </div>
     </div>
   );

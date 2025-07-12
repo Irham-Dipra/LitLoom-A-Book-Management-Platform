@@ -120,3 +120,19 @@
   background-color: #4a90e2;
   border-radius: 3px;
 }
+
+
+.user-rating-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.user-rating-section h3 {
+  margin: 0 0 1rem 0;
+  color: #a0c4ff;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
