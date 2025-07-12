@@ -35,13 +35,51 @@ app.use('/myBooks', userBooksRoutes);
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params; 
   try {
-    const book = await pool.query(`SELECT
+    // Check if user is authenticated (optional)
+    let userId = null;
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (token) {
+      const jwt = require('jsonwebtoken');
+      const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.id;
+      } catch (error) {
+        // Token invalid, but we'll continue without user data
+        console.log('Invalid token provided, continuing without user data');
+      }
+    }
+
+    // Base query for book details
+    let query = `
+      SELECT
         b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
         b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
         b.created_at, b.added_by, a.name as "author_name"
+    `;
+
+    // If user is authenticated, include their rating and shelf
+    if (userId) {
+      query += `, COALESCE(ub.user_rating, 0) as user_rating, ub.shelf`;
+    } else {
+      query += `, 0 as user_rating, null as shelf`;
+    }
+
+    query += `
       FROM books b
         JOIN book_authors ba ON b.id = ba.book_id
-        JOIN authors a ON ba.author_id = a.id WHERE b.id = $1`, [id]);
+        JOIN authors a ON ba.author_id = a.id
+    `;
+
+    if (userId) {
+      query += `LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ${userId}`;
+    }
+
+    query += ` WHERE b.id = $1`;
+
+    const book = await pool.query(query, [id]);
+    
     if (book.rows.length === 0) {
       return res.status(404).json({ message: 'Book not found' });
     }
