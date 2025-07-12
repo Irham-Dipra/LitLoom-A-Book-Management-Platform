@@ -28,11 +28,24 @@ const Login = () => {
       const data = await res.json();
 
       if (data.success) {
-        localStorage.setItem('token', data.token); 
-        localStorage.setItem('loggedIn', 'true');   
+        // Store authentication token (this is what BookCard checks for)
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          // Alternative: localStorage.setItem('authToken', data.token);
+        }
+        
+        // Store user data (this is what BookCard checks for)
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          // Alternative: localStorage.setItem('userData', JSON.stringify(data.user));
+        }
+        
+        // Keep your existing logic for IndividualBook compatibility
+        localStorage.setItem('loggedIn', 'true');
+        localStorage.setItem('userId', data.user.id);
+
         navigate('/');
-}
-else {
+      } else {
         setMessage(data.message || 'Login failed');
       }
     } catch (err) {
