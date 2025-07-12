@@ -129,18 +129,24 @@ router.post('/signin', [
     // Return user data (excluding password)
     const { password: _, ...userWithoutPassword } = user.rows[0];
 
+    // Log login history
+    await pool.query(
+      'INSERT INTO login_history (user_id, login_time, ip_address) VALUES ($1, NOW(), $2)',
+      [user.rows[0].id, req.ip || req.connection.remoteAddress || 'unknown']
+    );
+
+    // Update user's active status
+    await pool.query(
+      'UPDATE users SET active_status = TRUE WHERE id = $1',
+      [user.rows[0].id]
+    );
+
     res.json({
       success: true,
       message: 'Login successful',
       token,
       user: userWithoutPassword
     });
-
-    // Update user's active status
-    await pool.query(
-    'UPDATE users SET active_status = TRUE WHERE id = $1',
-    [user.rows[0].id]
-);
 
   } catch (error) {
     console.error('Signin error:', error);
@@ -152,7 +158,7 @@ router.post('/signin', [
 });
 
 // Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
   
   if (!token) {
@@ -167,12 +173,87 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
+    // If token is expired, update login history
+    if (error.name === 'TokenExpiredError') {
+      try {
+        const decoded = jwt.decode(token);
+        if (decoded && decoded.id) {
+          // Mark the session as logged out due to expiration
+          await pool.query(
+            `UPDATE login_history 
+             SET logout_time = NOW() 
+             WHERE id = (
+               SELECT id FROM login_history 
+               WHERE user_id = $1 AND logout_time IS NULL 
+               ORDER BY login_time DESC 
+               LIMIT 1
+             )`,
+            [decoded.id]
+          );
+          
+          // Update user's active status
+          await pool.query(
+            'UPDATE users SET active_status = FALSE WHERE id = $1',
+            [decoded.id]
+          );
+        }
+      } catch (dbError) {
+        console.error('Error updating logout time on token expiration:', dbError);
+      }
+      
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired. Please login again.'
+      });
+    }
+    
     res.status(400).json({
       success: false,
       message: 'Invalid token'
     });
   }
 };
+
+// Logout route
+router.post('/logout', verifyToken, async (req, res) => {
+  try {
+    console.log('Logout endpoint called for user ID:', req.user.id);
+    
+    // Update the most recent login record to add logout time
+    const logoutResult = await pool.query(
+      `UPDATE login_history 
+       SET logout_time = NOW() 
+       WHERE id = (
+         SELECT id FROM login_history 
+         WHERE user_id = $1 AND logout_time IS NULL 
+         ORDER BY login_time DESC 
+         LIMIT 1
+       )`,
+      [req.user.id]
+    );
+    
+    console.log('Logout query result - rows affected:', logoutResult.rowCount);
+
+    // Update user's active status
+    const activeResult = await pool.query(
+      'UPDATE users SET active_status = FALSE WHERE id = $1',
+      [req.user.id]
+    );
+    
+    console.log('Active status update - rows affected:', activeResult.rowCount);
+
+    res.json({
+      success: true,
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during logout'
+    });
+  }
+});
 
 // Protected route example - Get user profile
 router.get('/profile', verifyToken, async (req, res) => {

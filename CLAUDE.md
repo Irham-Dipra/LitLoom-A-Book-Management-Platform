@@ -35,6 +35,28 @@ dbms/
 └── node_modules/      # Dependencies
 ```
 
+### Session 3 - July 12, 2025
+- Added `logout_time` column to `login_history` table
+- Fixed SQL syntax error in logout queries (used subquery for UPDATE with ORDER BY)
+- Updated frontend Profile.js to call backend logout endpoint
+- **Migrated database from local PostgreSQL to Supabase cloud**
+- Updated backend configuration to use Supabase connection
+- All data and schema successfully migrated to cloud database
+
+## Database Setup (Updated)
+- **Database**: Now hosted on Supabase (cloud PostgreSQL)
+- **Connection**: Automatic via environment variables
+- **Collaboration**: Both developers now share the same cloud database
+
+## Setup Instructions for New Contributors
+1. Clone the repository
+2. Install dependencies: `npm install` in both `/backend` and `/frontend/myapp`
+3. Backend automatically connects to Supabase - no local database setup needed
+4. Start backend: `node index.js` (from `/backend` directory)
+5. Start frontend: `npm start` (from `/frontend/myapp` directory)
+
 ## Notes
-- Will update this file with each session's activities
+- Database is now in the cloud - no more sync issues between developers
+- All schema changes are immediately visible to all contributors
+- Login history tracking with logout time is now fully functional
 - Project appears to be a book management system called "LitLoom"

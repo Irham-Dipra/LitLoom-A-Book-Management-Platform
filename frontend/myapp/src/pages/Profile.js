@@ -52,7 +52,7 @@ const Profile = () => {
     fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     const sidebar = document.querySelector('.profile-sidebar');
     const main = document.querySelector('.profile-main');
 
@@ -61,6 +61,27 @@ const Profile = () => {
       main.style.transform = 'translateX(100%)';
       sidebar.style.opacity = '0';
       main.style.opacity = '0';
+    }
+
+    // Call backend logout endpoint to update login history
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        console.log('Calling logout endpoint...');
+        const response = await fetch('http://localhost:3000/auth/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        console.log('Logout response:', data);
+      } else {
+        console.log('No token found for logout');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Continue with logout even if backend call fails
     }
 
     setTimeout(() => {

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-07-11T09:47:54.341Z",
+  "timestamp": "2025-07-12T17:20:17.009Z",
   "database": "litloom",
   "status": "connected",
   "version": "16.9",
@@ -9,7 +9,7 @@
     "users": 19,
     "authors": 20,
     "reviews": 0,
-    "ratings": 0
+    "ratings": 2
   },
   "recent_books": [
     {
