@@ -309,72 +309,65 @@ import React, { useEffect, useState } from 'react';
     };
 
     return (
-      <div className="book-page">
+      <div className="goodreads-book-page">
         <Navbar loggedIn={loggedIn} />
 
-        <div className="book-container">
-          <div className="book-main">
-            {/* Left side - Book cover and actions */}
-            <div className="book-left">
-              <div className="book-cover-container">
-                <img
-                  src={book.cover_image || '/default-book-cover.jpg'}
-                  alt={book.title}
-                  className="book-cover-large"
-                />
-                {currentShelf === 'read' && (
-                  <div className="read-badge">
-                    <FaCheckCircle /> Read
-                  </div>
-                )}
+        <div className="book-page-container">
+          {/* Main book information section */}
+          <div className="book-main-section">
+            <div className="book-cover-area">
+              <img
+                src={book.cover_image || '/default-book-cover.jpg'}
+                alt={book.title}
+                className="book-cover-image"
+              />
+              {currentShelf === 'read' && (
+                <div className="read-status-badge">
+                  <FaCheckCircle /> Read
+                </div>
+              )}
+            </div>
+
+            <div className="book-info-area">
+              <div className="book-title-section">
+                <h1 className="main-book-title">{book.title}</h1>
+                <div className="author-link">
+                  by <span className="author-name">{book.author_name || 'Unknown Author'}</span>
+                </div>
               </div>
 
-              {/* Book actions */}
-              <div className="book-actions-container">
-                {loggedIn ? (
-                  <>
-                    <div className="shelf-selector">
+
+              {/* User Actions */}
+              {loggedIn ? (
+                <div className="user-actions-section">
+                  <div className="primary-actions">
+                    <div className="shelf-selector-modern">
                       <button 
-                        className={`shelf-button ${getShelfButtonClass(currentShelf)} ${isUpdatingShelf ? 'loading' : ''}`}
+                        className={`shelf-btn ${getShelfButtonClass(currentShelf)} ${isUpdatingShelf ? 'loading' : ''}`}
                         onClick={() => setShowShelfDropdown(!showShelfDropdown)}
                         disabled={isUpdatingShelf}
                       >
-                        {isUpdatingShelf ? (
-                          'Updating...'
-                        ) : (
-                          <>
-                            {currentShelf ? getShelfDisplayName(currentShelf) : 'Want to Read'}
-                            <BiChevronDown />
-                          </>
-                        )}
+                        {isUpdatingShelf ? 'Updating...' : (currentShelf ? getShelfDisplayName(currentShelf) : 'Want to Read')}
+                        <BiChevronDown className="dropdown-icon" />
                       </button>
 
                       {showShelfDropdown && (
-                        <div className="shelf-dropdown">
-                          <div 
-                            className="shelf-option"
-                            onClick={() => handleShelfChange('want-to-read')}
-                          >
+                        <div className="shelf-dropdown-modern">
+                          <div className="shelf-option-modern" onClick={() => handleShelfChange('want-to-read')}>
                             Want to Read
                           </div>
-                          <div 
-                            className="shelf-option"
-                            onClick={() => handleShelfChange('currently-reading')}
-                          >
+                          <div className="shelf-option-modern" onClick={() => handleShelfChange('currently-reading')}>
                             Currently Reading
                           </div>
-                          <div 
-                            className="shelf-option"
-                            onClick={() => handleShelfChange('read')}
-                          >
+                          <div className="shelf-option-modern" onClick={() => handleShelfChange('read')}>
                             Read
                           </div>
                         </div>
                       )}
                     </div>
 
-                    <div className="rating-section">
-                      <span className="rating-label">Rate this book:</span>
+                    <div className="rate-section">
+                      <span className="rate-label">Rate this book</span>
                       <RatingComponent
                         currentRating={userRating}
                         onRatingChange={handleRatingChange}
@@ -382,138 +375,253 @@ import React, { useEffect, useState } from 'react';
                         size="medium"
                       />
                     </div>
-                  </>
-                ) : (
+                  </div>
+                </div>
+              ) : (
+                <div className="login-prompt-section">
                   <button 
-                    className="login-prompt-button"
+                    className="sign-in-button"
                     onClick={() => navigate('/login')}
                   >
                     Sign in to rate and review
                   </button>
-                )}
-              </div>
-            </div>
-
-            {/* Right side - Book details */}
-            <div className="book-right">
-              <div className="book-header">
-                <h1 className="book-title">{book.title}</h1>
-                <div className="book-author">
-                  <FaUser className="author-icon" />
-                  <span>by {book.author_name || 'Unknown Author'}</span>
                 </div>
-              </div>
+              )}
 
-              <div className="book-rating-summary">
-                <div className="average-rating">
-                  <div className="rating-stars">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <FaStar 
-                        key={num} 
-                        className={`star ${num <= rating ? 'filled' : 'empty'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="rating-value">{book.average_rating ? parseFloat(book.average_rating).toFixed(2) : 'No rating'}</span>
-                </div>
-              </div>
-
-              <div className="book-meta">
-                <div className="meta-item">
-                  <FaCalendar className="meta-icon" />
-                  <span>Published {formatDate(book.publication_date)}</span>
-                </div>
-                {book.original_country && (
-                  <div className="meta-item">
-                    <FaGlobe className="meta-icon" />
-                    <span>{book.original_country}</span>
-                  </div>
-                )}
-              </div>
-
+              {/* Book Description */}
               <div className="book-description-section">
-                <h3>Description</h3>
-                <div className="book-description">
+                <div className="book-description-content">
                   {book.description || 'No description available for this book.'}
                 </div>
               </div>
 
-              <div className="book-details-section">
-                <h3>Book Details</h3>
-                <div className="details-grid">
-                  <div className="detail-item">
-                    <span className="detail-label">Language:</span>
-                    <span className="detail-value">Language ID {book.language_id}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Genre:</span>
-                    <span className="detail-value">Genre ID {book.genre_id}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Publisher:</span>
-                    <span className="detail-value">Publisher ID {book.publication_house_id}</span>
-                  </div>
+              {/* Book Details */}
+              <div className="book-details-modern">
+                <div className="detail-row">
+                  <span className="detail-key">First published</span>
+                  <span className="detail-val">{formatDate(book.publication_date)}</span>
                 </div>
+                <div className="detail-row">
+                  <span className="detail-key">Genre</span>
+                  <span className="detail-val genre-tag">{book.genre_name || 'Unknown'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-key">Language</span>
+                  <span className="detail-val">{book.language_name || 'Unknown'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-key">Publisher</span>
+                  <span className="detail-val">{book.publisher_name || 'Unknown'}</span>
+                </div>
+                {book.original_country && (
+                  <div className="detail-row">
+                    <span className="detail-key">Country</span>
+                    <span className="detail-val">{book.original_country}</span>
+                  </div>
+                )}
+                {book.pdf_url && (
+                  <div className="detail-row">
+                    <span className="detail-key">Digital</span>
+                    <a href={book.pdf_url} target="_blank" rel="noopener noreferrer" className="pdf-link">
+                      View PDF
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Reviews Section */}
+          {/* Community Rating Section */}
+          <div className="community-rating-section">
+            <div className="overall-rating">
+              <div className="rating-score">{book.average_rating ? parseFloat(book.average_rating).toFixed(2) : 'N/A'}</div>
+              <div className="rating-stars-display">
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <FaStar 
+                    key={num} 
+                    className={`rating-star ${num <= rating ? 'filled' : 'empty'}`} 
+                  />
+                ))}
+              </div>
+              <div className="rating-count">{reviews.length} reviews</div>
+            </div>
+            
+            <div className="rating-breakdown">
+              <div className="rating-bar-item">
+                <span className="rating-label">5 stars</span>
+                <div className="rating-bar"><div className="rating-fill" style={{width: '40%'}}></div></div>
+                <span className="rating-percent">40%</span>
+              </div>
+              <div className="rating-bar-item">
+                <span className="rating-label">4 stars</span>
+                <div className="rating-bar"><div className="rating-fill" style={{width: '30%'}}></div></div>
+                <span className="rating-percent">30%</span>
+              </div>
+              <div className="rating-bar-item">
+                <span className="rating-label">3 stars</span>
+                <div className="rating-bar"><div className="rating-fill" style={{width: '20%'}}></div></div>
+                <span className="rating-percent">20%</span>
+              </div>
+              <div className="rating-bar-item">
+                <span className="rating-label">2 stars</span>
+                <div className="rating-bar"><div className="rating-fill" style={{width: '7%'}}></div></div>
+                <span className="rating-percent">7%</span>
+              </div>
+              <div className="rating-bar-item">
+                <span className="rating-label">1 star</span>
+                <div className="rating-bar"><div className="rating-fill" style={{width: '3%'}}></div></div>
+                <span className="rating-percent">3%</span>
+              </div>
+            </div>
+          </div>
+
+
+          {/* About the Author Section */}
+          {book.author_bio && (
+            <div className="about-author-section">
+              <h2 className="section-title">About the Author</h2>
+              <div className="author-profile">
+                <div className="author-main-info">
+                  <div className="author-header">
+                    <h3 className="author-name-large">{book.author_name}</h3>
+                    {book.author_birth && (
+                      <div className="author-details">
+                        <span className="author-birth">Born {new Date(book.author_birth).getFullYear()}</span>
+                        {book.author_country && <span className="author-country">{book.author_country}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className="author-biography">
+                    {book.author_bio}
+                  </div>
+                </div>
+                
+                <div className="author-books-preview">
+                  <h4>More Books by {book.author_name}</h4>
+                  <div className="author-books-placeholder">
+                    <div className="placeholder-content">
+                      <span className="placeholder-icon">📚</span>
+                      <span className="placeholder-text">Coming Soon</span>
+                      <div className="placeholder-description">
+                        We're working on showing other books by this author
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Write Review Section */}
           {loggedIn && userId && (
-            <div className="book-reviews">
-              <h2>Write a Review</h2>
-              <form onSubmit={handleReviewSubmit} className="review-form">
-                <input
-                  type="text"
-                  value={reviewTitle}
-                  onChange={(e) => setReviewTitle(e.target.value)}
-                  placeholder="Review title"
-                  required
-                />
-                <textarea
-                  value={reviewBody}
-                  onChange={(e) => setReviewBody(e.target.value)}
-                  placeholder="Write your review..."
-                  required
-                />
-                <button type="submit">Submit Review</button>
+            <div className="write-review-modern">
+              <h2 className="section-title">Write a Review</h2>
+              <form onSubmit={handleReviewSubmit} className="review-form-clean">
+                <div className="form-field">
+                  <input
+                    type="text"
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    placeholder="Enter review title"
+                    required
+                    className="review-title-input"
+                  />
+                </div>
+                <div className="form-field">
+                  <textarea
+                    value={reviewBody}
+                    onChange={(e) => setReviewBody(e.target.value)}
+                    placeholder="What did you think of this book?"
+                    required
+                    className="review-body-input"
+                    rows="6"
+                  />
+                </div>
+                <button type="submit" className="submit-btn-clean">
+                  Post Review
+                </button>
               </form>
 
               {reviewMessage && (
-                <p
-                  className="review-feedback"
-                  style={{
-                    marginTop: '1rem',
-                    color: reviewMessage.startsWith('✅') ? 'green' : 'red',
-                  }}
-                >
+                <div className={`review-message ${reviewMessage.startsWith('✅') ? 'success' : 'error'}`}>
                   {reviewMessage}
-                </p>
+                </div>
               )}
             </div>
           )}
 
-          <div className="reviews-section">
-            <h2>Reviews</h2>
-            {reviewsLoading && <p>Loading reviews...</p>}
-            {reviewsError && <p>Error loading reviews: {reviewsError}</p>}
-            {!reviewsLoading && !reviewsError && reviews.length === 0 && (
-              <p>No reviews yet. Be the first to review this book!</p>
+          {/* Community Reviews Section */}
+          <div className="community-reviews-section">
+            <h2 className="section-title">Community Reviews</h2>
+            
+            {reviewsLoading && (
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <span>Loading reviews...</span>
+              </div>
             )}
+            
+            {reviewsError && (
+              <div className="error-state">
+                <span>Error loading reviews: {reviewsError}</span>
+              </div>
+            )}
+            
+            {!reviewsLoading && !reviewsError && reviews.length === 0 && (
+              <div className="empty-reviews-state">
+                <p>No reviews yet. Be the first to review this book!</p>
+              </div>
+            )}
+            
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
-              <div className="reviews-list">
+              <div className="goodreads-reviews-list">
                 {reviews.map((review) => (
-                  <Review
-                    key={review.id}
-                    id={review.id}
-                    title={review.title}
-                    body={review.body}
-                    reviewerName={review.user_name}
-                    rating={review.rating}
-                    created_at={review.created_at}
-                    initialUpvotes={0}
-                    initialDownvotes={0}
-                  />
+                  <div key={review.id} className="goodreads-review-item">
+                    <div className="review-user-section">
+                      <div className="user-avatar">
+                        {review.profile_picture_url ? (
+                          <img src={review.profile_picture_url} alt="Profile" className="avatar-img" />
+                        ) : (
+                          <div className="avatar-placeholder">
+                            {(review.first_name && review.last_name) 
+                              ? `${review.first_name.charAt(0)}${review.last_name.charAt(0)}`.toUpperCase()
+                              : review.user_name?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <div className="user-info">
+                        <div className="user-name">
+                          {(review.first_name && review.last_name) 
+                            ? `${review.first_name} ${review.last_name}`
+                            : review.user_name}
+                        </div>
+                        <div className="review-rating-stars">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <FaStar 
+                              key={star} 
+                              className={`review-star ${star <= review.rating ? 'filled' : 'empty'}`}
+                            />
+                          ))}
+                        </div>
+                        <div className="review-date">
+                          {new Date(review.created_at).toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="review-content-section">
+                      {review.title && (
+                        <h4 className="review-title-display">{review.title}</h4>
+                      )}
+                      <div className="review-text">
+                        {review.body}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}

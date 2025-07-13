@@ -1,6 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
+
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Access denied. No token provided.'
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  }
+};
 
 // POST /reviews
 router.post('/', async (req, res) => {
@@ -31,6 +57,47 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /reviews/user - Get all reviews by the authenticated user
+router.get('/user', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `SELECT 
+        r.id, 
+        r.book_id, 
+        r.user_id, 
+        r.title as review_title, 
+        r.body, 
+        r.rating, 
+        r.created_at, 
+        r.updated_at,
+        b.title as book_title,
+        b.cover_image,
+        a.name as author_name
+      FROM reviews r
+      JOIN books b ON r.book_id = b.id
+      JOIN book_authors ba ON b.id = ba.book_id
+      JOIN authors a ON ba.author_id = a.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC`,
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      reviews: result.rows
+    });
+  } catch (err) {
+    console.error('Error fetching user reviews:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching reviews',
+      error: err.message 
+    });
+  }
+});
+
 // GET /reviews/book/:bookId - Get all reviews for a specific book
 router.get('/book/:bookId', async (req, res) => {
   const { bookId } = req.params;
@@ -48,7 +115,10 @@ router.get('/book/:bookId', async (req, res) => {
         r.rating, 
         r.created_at, 
         r.updated_at,
-        u.username as user_name
+        u.username as user_name,
+        u.first_name,
+        u.last_name,
+        u.profile_picture_url
       FROM reviews r
       JOIN users u ON r.user_id = u.id
       WHERE r.book_id = $1

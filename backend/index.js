@@ -51,12 +51,16 @@ app.get('/books/:id', async (req, res) => {
       }
     }
 
-    // Base query for book details
+    // Base query for book details with names instead of IDs
     let query = `
       SELECT
         b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
         b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
-        b.created_at, b.added_by, a.name as "author_name"
+        b.created_at, b.added_by, 
+        a.name as "author_name", a.bio as "author_bio", a.date_of_birth as "author_birth", a.country as "author_country",
+        l.name as "language_name", l.iso_code as "language_code",
+        g.name as "genre_name",
+        ph.name as "publisher_name", ph.country as "publisher_country"
     `;
 
     // If user is authenticated, include their rating and shelf
@@ -70,6 +74,9 @@ app.get('/books/:id', async (req, res) => {
       FROM books b
         JOIN book_authors ba ON b.id = ba.book_id
         JOIN authors a ON ba.author_id = a.id
+        LEFT JOIN languages l ON b.language_id = l.id
+        LEFT JOIN genres g ON b.genre_id = g.id
+        LEFT JOIN publication_houses ph ON b.publication_house_id = ph.id
     `;
 
     if (userId) {
