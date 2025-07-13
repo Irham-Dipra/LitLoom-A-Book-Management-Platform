@@ -96,8 +96,8 @@ Before running Litloom, ensure you have the following installed:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/litloom.git
-   cd litloom
+   git clone https://github.com/Irham-Dipra/LitLoom.git
+   cd LitLoom
    ```
 
 2. **Install backend dependencies**
@@ -183,7 +183,7 @@ Before running Litloom, ensure you have the following installed:
 ## 📁 Project Structure
 
 ```
-litloom/
+LitLoom/
 ├── backend/                 # Node.js/Express backend
 │   ├── controllers/         # Business logic controllers
 │   ├── db/                  # Database connection

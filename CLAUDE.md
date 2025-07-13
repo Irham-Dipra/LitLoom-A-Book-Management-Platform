@@ -1,7 +1,7 @@
-# DBMS Project - Claude Code Sessions
+# LitLoom Project - Claude Code Sessions
 
 ## Project Overview
-This is a book management system with a React frontend and Node.js backend, using a SQL database.
+LitLoom is a comprehensive book management and discovery platform with a React frontend and Node.js backend, using PostgreSQL database. Located at /home/dipra/LitLoom
 
 ## Session History
 
