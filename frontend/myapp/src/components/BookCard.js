@@ -14,10 +14,11 @@ const BookCard = ({
   isInUserLibrary = false,
   shelf = null,
   isRead = false,
+  isInWishlist: initialIsInWishlist = false,
 }) => {
   const navigate = useNavigate();
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist || shelf === 'want-to-read');
   const [currentUserRating, setCurrentUserRating] = useState(userRating);
   const [isRating, setIsRating] = useState(false);
   const [currentReadStatus, setCurrentReadStatus] = useState(isRead);
@@ -419,11 +420,12 @@ const BookCard = ({
           backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
         }}
       >
-        {currentReadStatus && (
-          <div className="read-indicator">
-            <FaCheckCircle className="read-tick" />
-          </div>
-        )}
+        <div 
+          className={`read-button ${currentReadStatus ? 'is-read' : ''} ${isMarkingAsRead ? 'loading' : ''}`}
+          onClick={handleMarkAsRead}
+        >
+          <FaCheckCircle className="read-icon" />
+        </div>
       </div>
 
       <div className="book-details">
@@ -431,12 +433,14 @@ const BookCard = ({
           <span className="avg-rating">
             <FaStar className="star-icon yellow" /> {averageRating}
           </span>
-          <RatingComponent
-            currentRating={currentUserRating}
-            onRatingChange={handleRatingChange}
-            isInteractive={true}
-            size="small"
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <RatingComponent
+              currentRating={currentUserRating}
+              onRatingChange={handleRatingChange}
+              isInteractive={true}
+              size="small"
+            />
+          </div>
         </div>
 
         <div className="book-title">{title}</div>
@@ -444,25 +448,6 @@ const BookCard = ({
       </div>
 
       <div className="book-actions">
-        <div 
-          className={`read-section ${currentReadStatus ? 'is-read' : ''} ${isMarkingAsRead ? 'loading' : ''}`}
-          onClick={handleMarkAsRead}
-        >
-          {isMarkingAsRead ? (
-            <>
-              <div className="loading-spinner" /> Marking...
-            </>
-          ) : currentReadStatus ? (
-            <>
-              <FaCheckCircle className="read-icon" /> Read
-            </>
-          ) : (
-            <>
-              <FaCheckCircle className="read-icon" /> Mark as Read
-            </>
-          )}
-        </div>
-
         <div 
           className={`wishlist-section ${isInWishlist ? 'in-wishlist' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
           onClick={handleWishlistClick}

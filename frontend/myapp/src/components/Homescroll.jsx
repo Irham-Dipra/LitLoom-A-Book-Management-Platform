@@ -38,6 +38,7 @@ function Homescroll({ title, books }) {
                 isRead={book.shelf === 'read'}
                 isInUserLibrary={book.shelf !== null}
                 shelf={book.shelf}
+                isInWishlist={book.shelf === 'want-to-read'}
               />
             </div>
           ))}
