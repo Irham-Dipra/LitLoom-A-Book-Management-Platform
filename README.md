@@ -3,7 +3,7 @@
 [![React](https://img.shields.io/badge/React-19.1.0-blue.svg)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-Express-green.svg)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue.svg)](https://postgresql.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<!-- [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) -->
 
 > **Litloom** is a comprehensive book management and discovery platform designed to connect book lovers with their next great read. Built as part of the CSE 216: Database Sessional course (Level 2, Term 1), this full-stack web application provides a modern, intuitive interface for book discovery, personal library management, and community engagement.
 
@@ -247,6 +247,10 @@ We welcome contributions to Litloom! Here's how you can help:
 - Test your changes thoroughly before submitting
 - Update documentation for new features
 - Ensure responsive design compatibility
+
+<!-- ## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. -->
 
 ## 🎓 Academic Context
 
