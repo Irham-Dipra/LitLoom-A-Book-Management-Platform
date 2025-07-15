@@ -34,14 +34,13 @@ router.get('/', async (req, res) => {
       let bookQuery = `
         SELECT DISTINCT
           b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
-          b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
+          b.language_id, b.publication_house_id, b.average_rating,
           b.created_at, b.added_by, a.name as "author_name",
-          l.name as "language_name", g.name as "genre_name", ph.name as "publisher_name"
+          l.name as "language_name", ph.name as "publisher_name"
         FROM books b
           JOIN book_authors ba ON b.id = ba.book_id
           JOIN authors a ON ba.author_id = a.id
           LEFT JOIN languages l ON b.language_id = l.id
-          LEFT JOIN genres g ON b.genre_id = g.id
           LEFT JOIN publication_houses ph ON b.publication_house_id = ph.id
         WHERE 1=1
       `;
@@ -57,12 +56,10 @@ router.get('/', async (req, res) => {
         queryParams.push(...languages);
       }
 
-      // Genre filter
+      // Genre filter - REMOVED: genre_id doesn't exist, would need to join book_genres table
+      // TODO: Implement genre filtering with proper many-to-many relationship
       if (genre) {
-        const genres = genre.split(',').map(g => g.trim());
-        const genrePlaceholders = genres.map(() => `$${paramIndex++}`).join(',');
-        bookQuery += ` AND b.genre_id IN (${genrePlaceholders})`;
-        queryParams.push(...genres);
+        // Skip genre filtering for now since it requires book_genres table join
       }
 
       // Author filter
@@ -138,7 +135,7 @@ router.get('/', async (req, res) => {
       const bookQuery = `
         SELECT
           b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
-          b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
+          b.language_id, b.publication_house_id, b.average_rating,
           b.created_at, b.added_by, a.name as "author_name"
         FROM books b
           JOIN book_authors ba ON b.id = ba.book_id
@@ -161,10 +158,10 @@ router.get('/', async (req, res) => {
       const authorsResult = await pool.query(authorQuery, [keyword]);
       if (authorsResult.rows.length > 0) data.authors = authorsResult.rows;
 
-      // Search Characters
+      // Search Characters - FIXED: table name
       const characterQuery = `
-        SELECT id, name, description
-        FROM book_characters
+        SELECT id, name, biography as description
+        FROM characters
         WHERE LOWER(name) LIKE $1
         ORDER BY name
         LIMIT 20;

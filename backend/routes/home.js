@@ -21,11 +21,11 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Base query part for books with authors
+    // Base query part for books with authors - FIXED: removed non-existent fields
     const baseSelect = `
       SELECT
         b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
-        b.language_id, b.genre_id, b.publication_house_id, b.pdf_url, b.average_rating,
+        b.language_id, b.publication_house_id, b.average_rating,
         b.created_at, b.added_by, a.name as "author_name"
     `;
 

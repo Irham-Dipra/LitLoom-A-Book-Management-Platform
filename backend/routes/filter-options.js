@@ -17,11 +17,12 @@ router.get('/', async (req, res) => {
     const languagesResult = await pool.query(languagesQuery);
     data.languages = languagesResult.rows;
 
-    // Get all genres that have books
+    // Get all genres that have books - FIXED: use book_genres junction table
     const genresQuery = `
       SELECT DISTINCT g.id as value, g.name as label
       FROM genres g
-      INNER JOIN books b ON g.id = b.genre_id
+      INNER JOIN book_genres bg ON g.id = bg.genre_id
+      INNER JOIN books b ON bg.book_id = b.id
       ORDER BY g.name;
     `;
     const genresResult = await pool.query(genresQuery);
