@@ -93,8 +93,8 @@ function MyBooks() {
   const handleRatingChange = async (bookId, rating) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
-        method: 'PUT',
+      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}/rate`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,

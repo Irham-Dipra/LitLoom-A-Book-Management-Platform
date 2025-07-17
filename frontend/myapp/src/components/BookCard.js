@@ -8,6 +8,8 @@ const BookCard = ({
   id,
   title = 'Sample Book Title',
   author = 'Author Name',
+  authorId = null,
+  onAuthorClick = null,
   averageRating = 4.5,
   coverUrl = '',
   userRating = 0,
@@ -187,6 +189,15 @@ const BookCard = ({
     navigate('/login');
   };
 
+  const handleAuthorClick = (e) => {
+    e.stopPropagation();
+    if (authorId && onAuthorClick) {
+      onAuthorClick(authorId);
+    } else if (authorId) {
+      navigate(`/author/${authorId}`);
+    }
+  };
+
   const addToWishlist = async (userId, bookId) => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -222,6 +233,37 @@ const BookCard = ({
     }
   };
 
+  const removeFromWishlist = async (userId, bookId) => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      console.log('Making remove from wishlist API call with:', { book_id: bookId });
+      
+      const response = await fetch(`http://localhost:3000/wishlist/${bookId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('Remove from wishlist response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.log('Error response:', errorData);
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Remove from wishlist API success:', data);
+      return data;
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      throw error;
+    }
+  };
+
   const handleWishlistClick = async (e) => {
     e.stopPropagation();
 
@@ -231,8 +273,9 @@ const BookCard = ({
       return;
     }
 
-    // If already in wishlist, don't do anything (or implement remove functionality)
-    if (isInWishlist) {
+    // Prevent adding to wishlist if book is already marked as read
+    if (!isInWishlist && currentReadStatus) {
+      alert('Cannot add a book that is already marked as read to wishlist.');
       return;
     }
 
@@ -247,19 +290,21 @@ const BookCard = ({
         return;
       }
 
-      await addToWishlist(userId, id);
-      
-      // Success - update UI
-      setIsInWishlist(true);
-      
-      // Show success message
-      console.log('✅ Book added to wishlist successfully!');
+      if (isInWishlist) {
+        // Remove from wishlist
+        await removeFromWishlist(userId, id);
+        setIsInWishlist(false);
+        console.log('✅ Book removed from wishlist successfully!');
+      } else {
+        // Add to wishlist
+        await addToWishlist(userId, id);
+        setIsInWishlist(true);
+        console.log('✅ Book added to wishlist successfully!');
+      }
       
     } catch (error) {
-      console.error('Failed to add book to wishlist:', error);
-      
-      // Optional: Show error message to user
-      alert('Failed to add book to wishlist. Please try again.');
+      console.error('Failed to update wishlist:', error);
+      alert('Failed to update wishlist. Please try again.');
       
     } finally {
       setIsAddingToWishlist(false);
@@ -272,6 +317,7 @@ const BookCard = ({
       return;
     }
 
+    // If book is not in user's library, add it first then rate
     if (!isInUserLibrary) {
       await addBookToLibrary(rating);
       return;
@@ -281,8 +327,9 @@ const BookCard = ({
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
-      const response = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-        method: 'PUT',
+      // Use dedicated rating endpoint
+      const response = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -293,7 +340,9 @@ const BookCard = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update rating');
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to update rating');
       }
 
       setCurrentUserRating(rating);
@@ -312,6 +361,7 @@ const BookCard = ({
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
+      // First add book to library with default shelf for rating
       const addResponse = await fetch('http://localhost:3000/myBooks/books', {
         method: 'POST',
         headers: {
@@ -319,17 +369,20 @@ const BookCard = ({
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          bookId: id
-          // No shelf specified - will be null
+          bookId: id,
+          shelf: 'want-to-read'  // Default shelf for books added for rating
         })
       });
 
       if (!addResponse.ok) {
-        throw new Error('Failed to add book to library');
+        const errorData = await addResponse.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to add book to library');
       }
 
-      const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-        method: 'PUT',
+      // Then rate the book using the dedicated rating endpoint
+      const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -340,7 +393,9 @@ const BookCard = ({
       });
 
       if (!rateResponse.ok) {
-        throw new Error('Failed to update rating');
+        const errorData = await rateResponse.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to update rating');
       }
 
       setCurrentUserRating(rating);
@@ -366,25 +421,8 @@ const BookCard = ({
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
-      if (!isInUserLibrary) {
-        // Add book to library first with "read" shelf
-        const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            bookId: id,
-            shelf: 'read'
-          })
-        });
-
-        if (!addResponse.ok) {
-          throw new Error('Failed to add book to library');
-        }
-      } else {
-        // Update existing book to "read" shelf
+      if (currentReadStatus) {
+        // Book is currently read - mark as unread
         const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
           method: 'PUT',
           headers: {
@@ -392,21 +430,90 @@ const BookCard = ({
             'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
-            shelf: 'read'
+            shelf: null, // Remove from any shelf
+            dateRead: null // Clear read date
           })
         });
 
         if (!updateResponse.ok) {
-          throw new Error('Failed to update book status');
+          const errorData = await updateResponse.json();
+          console.error('Error response:', errorData);
+          throw new Error(errorData.message || 'Failed to mark book as unread');
         }
-      }
 
-      setCurrentReadStatus(true);
-      console.log('✅ Book marked as read successfully!');
+        setCurrentReadStatus(false);
+        // Book is now removed from library entirely
+        // Update UI state to reflect this
+        console.log('✅ Book marked as unread and removed from library!');
+
+      } else {
+        // Book is not read - mark as read
+        console.log('Debug: isInUserLibrary =', isInUserLibrary, 'isInWishlist =', isInWishlist, 'shelf =', shelf);
+        let response;
+        
+        if (!isInUserLibrary) {
+          // Add book to library first with "read" shelf
+          response = await fetch('http://localhost:3000/myBooks/books', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              bookId: id,
+              shelf: 'read'
+            })
+          });
+        } else {
+          // Update existing book to "read" shelf (works for wishlist books too)
+          response = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              shelf: 'read'
+            })
+          });
+        }
+
+        // If PUT failed with 404 (book not found), try POST instead
+        if (!response.ok && response.status === 404) {
+          console.log('Book not found in library, trying to add it...');
+          response = await fetch('http://localhost:3000/myBooks/books', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              bookId: id,
+              shelf: 'read'
+            })
+          });
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error response:', errorData);
+          throw new Error(errorData.message || 'Failed to mark book as read');
+        }
+
+        setCurrentReadStatus(true);
+        
+        // If book was in wishlist, it's now marked as read (shelf changed from want-to-read to read)
+        if (isInWishlist) {
+          setIsInWishlist(false);
+          console.log('✅ Book moved from wishlist to read status');
+        }
+        
+        console.log('✅ Book marked as read successfully!');
+      }
       
     } catch (error) {
-      console.error('Failed to mark book as read:', error);
-      alert('Failed to mark book as read. Please try again.');
+      console.error('Failed to update read status:', error);
+      alert('Failed to update read status. Please try again.');
     } finally {
       setIsMarkingAsRead(false);
     }
@@ -444,25 +551,34 @@ const BookCard = ({
         </div>
 
         <div className="book-title">{title}</div>
-        <div className="book-author">{author}</div>
+        <div 
+          className={`book-author ${authorId ? 'clickable' : ''}`}
+          onClick={authorId ? handleAuthorClick : undefined}
+        >
+          {author}
+        </div>
       </div>
 
       <div className="book-actions">
         <div 
-          className={`wishlist-section ${isInWishlist ? 'in-wishlist' : ''} ${isAddingToWishlist ? 'loading' : ''}`}
+          className={`wishlist-section ${isInWishlist ? 'in-wishlist' : ''} ${isAddingToWishlist ? 'loading' : ''} ${currentReadStatus ? 'disabled' : ''}`}
           onClick={handleWishlistClick}
         >
           {isAddingToWishlist ? (
             <>
-              <div className="loading-spinner" /> Adding...
+              <div className="loading-spinner" /> {isInWishlist ? 'Removing...' : 'Adding...'}
+            </>
+          ) : currentReadStatus ? (
+            <>
+              <FaCheck className="check-icon" /> Already Read
             </>
           ) : isInWishlist ? (
             <>
-              <FaCheck className="check-icon" /> In Wishlist
+              <FaCheck className="check-icon" /> Remove from Wishlist
             </>
           ) : (
             <>
-              <FaPlus className="plus-icon" /> Wishlist
+              <FaPlus className="plus-icon" /> Add to Wishlist
             </>
           )}
         </div>

@@ -32,6 +32,7 @@ function Homescroll({ title, books }) {
                 id={book.id}
                 title={book.title}
                 author={book.author_name || 'Unknown Author'}
+                authorId={book.author_id}
                 averageRating={book.average_rating}
                 coverUrl={book.cover_image}
                 userRating={book.user_rating || 0}

@@ -9,6 +9,7 @@ import Wishlist from './pages/Wishlist';
 import SearchResults from './pages/SearchResults';
 import AddBook from './pages/AddBook';
 import MyBooks from './pages/MyBooks';
+import Author from './pages/Author';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/addbook" element={<AddBook />} />
         <Route path="/my-books" element={<MyBooks />} />
+        <Route path="/author/:id" element={<Author />} />
       </Routes>
     </Router>
   );

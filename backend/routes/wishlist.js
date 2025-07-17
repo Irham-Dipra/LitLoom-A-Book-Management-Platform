@@ -30,6 +30,8 @@ const verifyToken = (req, res, next) => {
 
 // POST /wishlist - Add book to wishlist
 router.post('/', verifyToken, async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { book_id } = req.body;
     const user_id = req.user.id;
@@ -41,37 +43,45 @@ router.post('/', verifyToken, async (req, res) => {
       });
     }
 
+    // Start transaction
+    await client.query('BEGIN');
+
     // Check if book exists
-    const bookExists = await pool.query(
+    const bookExists = await client.query(
       'SELECT id FROM books WHERE id = $1',
       [book_id]
     );
 
     if (bookExists.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
         message: 'Book not found'
       });
     }
 
-    // Check if book is already in wishlist (want-to-read shelf)
-    const existingWish = await pool.query(
+    // Check if book is already in user library
+    const existingEntry = await client.query(
       'SELECT * FROM user_books WHERE user_id = $1 AND book_id = $2',
       [user_id, book_id]
     );
 
-    if (existingWish.rows.length > 0) {
+    if (existingEntry.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
-        message: 'Book is already in your wishlist'
+        message: 'Book is already in your library'
       });
     }
 
     // Add to wishlist (want-to-read shelf)
-    const newWish = await pool.query(
-      'INSERT INTO user_books (user_id, book_id, shelf) VALUES ($1, $2, $3) RETURNING *',
+    const newWish = await client.query(
+      'INSERT INTO user_books (user_id, book_id, shelf, date_added) VALUES ($1, $2, $3, CURRENT_TIMESTAMP) RETURNING *',
       [user_id, book_id, 'want-to-read']
     );
+
+    // Commit transaction
+    await client.query('COMMIT');
 
     res.status(201).json({
       success: true,
@@ -80,11 +90,14 @@ router.post('/', verifyToken, async (req, res) => {
     });
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Add to wishlist error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while adding to wishlist'
     });
+  } finally {
+    client.release();
   }
 });
 
@@ -119,33 +132,53 @@ router.get('/', verifyToken, async (req, res) => {
 
 // DELETE /wishlist/:book_id - Remove book from wishlist
 router.delete('/:book_id', verifyToken, async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { book_id } = req.params;
     const user_id = req.user.id;
 
-    const result = await pool.query(
-      'DELETE FROM user_books WHERE user_id = $1 AND book_id = $2 AND shelf = $3 RETURNING *',
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Check if book exists in wishlist
+    const existingWish = await client.query(
+      'SELECT * FROM user_books WHERE user_id = $1 AND book_id = $2 AND shelf = $3',
       [user_id, book_id, 'want-to-read']
     );
 
-    if (result.rows.length === 0) {
+    if (existingWish.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
         message: 'Book not found in your wishlist'
       });
     }
 
+    // Remove from wishlist
+    const result = await client.query(
+      'DELETE FROM user_books WHERE user_id = $1 AND book_id = $2 AND shelf = $3 RETURNING *',
+      [user_id, book_id, 'want-to-read']
+    );
+
+    // Commit transaction
+    await client.query('COMMIT');
+
     res.json({
       success: true,
-      message: 'Book removed from wishlist successfully'
+      message: 'Book removed from wishlist successfully',
+      removed_item: result.rows[0]
     });
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Remove from wishlist error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while removing from wishlist'
     });
+  } finally {
+    client.release();
   }
 });
 

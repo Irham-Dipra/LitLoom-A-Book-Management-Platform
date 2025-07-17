@@ -19,6 +19,7 @@ const filterOptionsRoutes = require('./routes/filter-options');
 const addBookRoutes = require('./routes/addBook');
 const reviewRoutes = require('./routes/reviews');
 const userBooksRoutes = require('./routes/userBooks');
+const authorRoutes = require('./routes/authors');
 
 
 
@@ -31,6 +32,7 @@ app.use('/filter-options', filterOptionsRoutes);
 app.use('/addBook', addBookRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/myBooks', userBooksRoutes);
+app.use('/authors', authorRoutes);
 
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params; 
@@ -64,9 +66,9 @@ app.get('/books/:id', async (req, res) => {
 
     // If user is authenticated, include their rating and shelf
     if (userId) {
-      query += `, COALESCE(ub.user_rating, 0) as user_rating, ub.shelf`;
+      query += `, ub.shelf, rt.value as user_rating`;
     } else {
-      query += `, 0 as user_rating, null as shelf`;
+      query += `, null as shelf, null as user_rating`;
     }
 
     query += `
@@ -79,6 +81,7 @@ app.get('/books/:id', async (req, res) => {
 
     if (userId) {
       query += `LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ${userId}`;
+      query += ` LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ${userId}`;
     }
 
     query += ` WHERE b.id = $1`;

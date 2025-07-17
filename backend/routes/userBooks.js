@@ -50,24 +50,28 @@ router.get('/books', verifyToken, async (req, res) => {
       SELECT 
         b.id,
         b.title,
-        a.name as author,
+        (SELECT a.name FROM authors a 
+         JOIN book_authors ba ON a.id = ba.author_id 
+         WHERE ba.book_id = b.id 
+         ORDER BY a.id ASC LIMIT 1) as author,
         b.cover_image as cover_url,
         COALESCE(b.average_rating, 0)::float as avg_rating,
         ub.shelf,
-        ub.user_rating,
         ub.date_added,
         ub.date_read,
         ub.review_id,
         r.body as review,
-        g.name as genre,
-        l.name as language
+        (SELECT g.name FROM genres g 
+         JOIN book_genres bg ON g.id = bg.genre_id 
+         WHERE bg.book_id = b.id 
+         ORDER BY g.id ASC LIMIT 1) as genre,
+        l.name as language,
+        rt.value as user_rating
       FROM books b
       INNER JOIN user_books ub ON b.id = ub.book_id
-      INNER JOIN book_authors ba ON b.id = ba.book_id
-      INNER JOIN authors a ON ba.author_id = a.id
       LEFT JOIN reviews r ON ub.review_id = r.id
-      LEFT JOIN genres g ON b.genre_id = g.id
       LEFT JOIN languages l ON b.language_id = l.id
+      LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ub.user_id
       WHERE ub.user_id = $1
     `;
     
@@ -87,7 +91,7 @@ router.get('/books', verifyToken, async (req, res) => {
     const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
     
     if (sortField === 'rating') {
-      query += ` ORDER BY ub.user_rating ${sortOrder}`;
+      query += ` ORDER BY b.average_rating ${sortOrder}`;
     } else if (sortField === 'title') {
       query += ` ORDER BY b.title ${sortOrder}`;
     } else if (sortField === 'author') {
@@ -245,40 +249,66 @@ router.post('/books', [
 });
 
 // Update book shelf or rating
-router.put('/books/:bookId', [
-  body('shelf').optional().isIn(['want-to-read', 'currently-reading', 'read']).withMessage('Invalid shelf value'),
-  body('rating').optional().isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-  body('dateRead').optional().isISO8601().withMessage('Invalid date format'),
-  body('notes').optional().isString().withMessage('Notes must be a string')
-], verifyToken, async (req, res) => {
+router.put('/books/:bookId', verifyToken, async (req, res) => {
+  const client = await pool.connect();
+  
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    // Manual validation since express-validator has issues with null values
+    const { shelf, rating, dateRead, notes } = req.body;
+    
+    if (shelf !== undefined && shelf !== null && !['want-to-read', 'currently-reading', 'read'].includes(shelf)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
-        message: 'Validation failed',
-        errors: errors.array()
+        message: 'Invalid shelf value'
+      });
+    }
+    
+    if (rating !== undefined && (rating < 1 || rating > 5 || !Number.isInteger(rating))) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be between 1 and 5'
       });
     }
 
     const userId = req.user.id;
     const { bookId } = req.params;
-    const { shelf, rating, dateRead, notes } = req.body;
+
+    // Start transaction
+    await client.query('BEGIN');
 
     // Check if book is in user's library
-    const existingEntry = await pool.query(
-      'SELECT id FROM user_books WHERE user_id = $1 AND book_id = $2',
+    const existingEntry = await client.query(
+      'SELECT id, shelf FROM user_books WHERE user_id = $1 AND book_id = $2',
       [userId, bookId]
     );
 
     if (existingEntry.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ 
         success: false,
         message: 'Book not found in library' 
       });
     }
 
-    // Build update query
+    // Special case: if unmarking as read (shelf is null), remove from library entirely
+    if (shelf === null) {
+      await client.query(
+        'DELETE FROM user_books WHERE user_id = $1 AND book_id = $2',
+        [userId, bookId]
+      );
+
+      // Commit transaction
+      await client.query('COMMIT');
+
+      return res.json({ 
+        success: true,
+        message: 'Book removed from library (unmarked as read)' 
+      });
+    }
+
+    // Build update query for other cases
     let updateQuery = 'UPDATE user_books SET ';
     const updateParams = [];
     const updates = [];
@@ -288,25 +318,19 @@ router.put('/books/:bookId', [
       paramCount++;
       updates.push(`shelf = $${paramCount}`);
       updateParams.push(shelf);
-      
-      // If marking as read, set date_read to now if not provided
-      if (shelf === 'read' && !dateRead) {
-        paramCount++;
-        updates.push(`date_read = $${paramCount}`);
-        updateParams.push(new Date());
-      }
     }
 
-    if (rating !== undefined) {
-      paramCount++;
-      updates.push(`user_rating = $${paramCount}`);
-      updateParams.push(rating);
+    // Handle date_read logic
+    let dateReadValue = dateRead;
+    if (shelf === 'read' && dateRead === undefined) {
+      // If marking as read and no specific date provided, use current date
+      dateReadValue = new Date();
     }
 
-    if (dateRead !== undefined) {
+    if (dateReadValue !== undefined) {
       paramCount++;
       updates.push(`date_read = $${paramCount}`);
-      updateParams.push(dateRead);
+      updateParams.push(dateReadValue);
     }
 
     if (notes !== undefined) {
@@ -316,6 +340,7 @@ router.put('/books/:bookId', [
     }
 
     if (updates.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ 
         success: false,
         message: 'No updates provided' 
@@ -326,35 +351,42 @@ router.put('/books/:bookId', [
     updateQuery += ` WHERE user_id = $${paramCount + 1} AND book_id = $${paramCount + 2}`;
     updateParams.push(userId, bookId);
 
-    await pool.query(updateQuery, updateParams);
+    console.log('Update query:', updateQuery);
+    console.log('Update params:', updateParams);
+
+    await client.query(updateQuery, updateParams);
 
     // If rating was updated, also save to ratings table
     if (rating !== undefined) {
       try {
         // Check if rating already exists in ratings table
-        const existingRating = await pool.query(
+        const existingRating = await client.query(
           'SELECT id FROM ratings WHERE user_id = $1 AND book_id = $2',
           [userId, bookId]
         );
 
         if (existingRating.rows.length > 0) {
           // Update existing rating
-          await pool.query(
+          await client.query(
             'UPDATE ratings SET value = $1, created_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND book_id = $3',
             [rating, userId, bookId]
           );
         } else {
           // Insert new rating
-          await pool.query(
+          await client.query(
             'INSERT INTO ratings (user_id, book_id, value, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
             [userId, bookId, rating]
           );
         }
       } catch (ratingError) {
         console.error('Error updating ratings table:', ratingError);
-        // Don't fail the main request if ratings table update fails
+        await client.query('ROLLBACK');
+        throw ratingError;
       }
     }
+
+    // Commit transaction
+    await client.query('COMMIT');
 
     res.json({ 
       success: true,
@@ -362,11 +394,22 @@ router.put('/books/:bookId', [
     });
 
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error updating book:', error);
+    console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      hint: error.hint
+    });
     res.status(500).json({ 
       success: false,
-      message: 'Server error while updating book' 
+      message: 'Server error while updating book',
+      error: error.message
     });
+  } finally {
+    client.release();
   }
 });
 
@@ -411,8 +454,8 @@ router.get('/stats', verifyToken, async (req, res) => {
         COUNT(CASE WHEN shelf = 'read' THEN 1 END) as books_read,
         COUNT(CASE WHEN shelf = 'currently-reading' THEN 1 END) as currently_reading,
         COUNT(CASE WHEN shelf = 'want-to-read' THEN 1 END) as want_to_read,
-        ROUND(AVG(CASE WHEN user_rating > 0 THEN user_rating END), 2) as avg_rating,
-        COUNT(CASE WHEN user_rating > 0 THEN 1 END) as rated_books
+        NULL as avg_rating,
+        0 as rated_books
       FROM user_books 
       WHERE user_id = $1
     `;
@@ -445,6 +488,82 @@ router.get('/stats', verifyToken, async (req, res) => {
       success: false,
       message: 'Server error while fetching reading statistics' 
     });
+  }
+});
+
+// Rate a book (separate endpoint for ratings table)
+router.post('/books/:bookId/rate', verifyToken, async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const { rating } = req.body;
+    const userId = req.user.id;
+    const { bookId } = req.params;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rating must be an integer between 1 and 5'
+      });
+    }
+
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Check if book exists
+    const bookExists = await client.query(
+      'SELECT id FROM books WHERE id = $1',
+      [bookId]
+    );
+
+    if (bookExists.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Book not found'
+      });
+    }
+
+    // Check if rating already exists
+    const existingRating = await client.query(
+      'SELECT id FROM ratings WHERE user_id = $1 AND book_id = $2',
+      [userId, bookId]
+    );
+
+    if (existingRating.rows.length > 0) {
+      // Update existing rating
+      await client.query(
+        'UPDATE ratings SET value = $1, created_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND book_id = $3',
+        [rating, userId, bookId]
+      );
+    } else {
+      // Insert new rating
+      await client.query(
+        'INSERT INTO ratings (user_id, book_id, value, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
+        [userId, bookId, rating]
+      );
+    }
+
+    // Commit transaction
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: 'Rating saved successfully',
+      rating: rating
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error saving rating:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while saving rating',
+      error: error.message
+    });
+  } finally {
+    client.release();
   }
 });
 

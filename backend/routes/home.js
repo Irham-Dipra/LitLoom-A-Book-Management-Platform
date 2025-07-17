@@ -21,64 +21,58 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Base query part for books with authors - FIXED: removed non-existent fields
-    const baseSelect = `
-      SELECT
-        b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
-        b.language_id, b.publication_house_id, b.average_rating,
-        b.created_at, b.added_by, a.name as "author_name"
-    `;
-
-    // If user is authenticated, include their rating and shelf
-    const userRatingSelect = userId ? `, COALESCE(ub.user_rating, 0) as user_rating, ub.shelf` : `, 0 as user_rating, null as shelf`;
-    
-    const fromClause = `
-      FROM books b
-        JOIN book_authors ba ON b.id = ba.book_id
-        JOIN authors a ON ba.author_id = a.id
-    `;
-
-    const userJoin = userId ? `LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ${userId}` : '';
+    // Use a subquery approach to get first author and avoid duplicates
+    const buildQuery = (whereClause = '', orderClause = '') => {
+      const userSelect = userId ? `, ub.shelf, rt.value as user_rating` : `, null as shelf, null as user_rating`;
+      const userJoin = userId ? `LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ${userId}` : '';
+      const ratingJoin = userId ? `LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ${userId}` : '';
+      
+      return `
+        SELECT 
+          b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
+          b.language_id, b.publication_house_id, b.average_rating,
+          b.created_at, b.added_by,
+          (SELECT a.name FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author_name,
+          (SELECT a.id FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author_id
+          ${userSelect}
+        FROM books b
+        ${userJoin}
+        ${ratingJoin}
+        ${whereClause}
+        ${orderClause}
+        LIMIT 10;
+      `;
+    };
 
     // Query 1: Top 10 books after 2020 based on average rating
-    const top2020sQuery = `
-      ${baseSelect}${userRatingSelect}
-      ${fromClause}
-      ${userJoin}
-      WHERE EXTRACT(YEAR FROM b.publication_date) >= 2020
-      ORDER BY b.average_rating DESC, b.id ASC
-      LIMIT 10;
-    `;
+    const top2020sQuery = buildQuery(
+      `WHERE EXTRACT(YEAR FROM b.publication_date) >= 2020`,
+      `ORDER BY b.average_rating DESC, b.id ASC`
+    );
 
     // Query 2: Top 10 books of all time based on average rating
-    const allTimeQuery = `
-      ${baseSelect}${userRatingSelect}
-      ${fromClause}
-      ${userJoin}
-      ORDER BY b.average_rating DESC, b.id ASC
-      LIMIT 10;
-    `;
+    const allTimeQuery = buildQuery(
+      ``,
+      `ORDER BY b.average_rating DESC, b.id ASC`
+    );
 
     // Query 3: Trending books (recently added books with good ratings)
-    const trendingQuery = `
-      ${baseSelect}${userRatingSelect}
-      ${fromClause}
-      ${userJoin}
-      WHERE b.created_at >= NOW() - INTERVAL '30 days' 
-        AND b.average_rating >= 3.0
-      ORDER BY b.created_at DESC, b.average_rating DESC
-      LIMIT 10;
-    `;
+    const trendingQuery = buildQuery(
+      `WHERE b.created_at >= NOW() - INTERVAL '30 days' AND b.average_rating >= 3.0`,
+      `ORDER BY b.created_at DESC, b.average_rating DESC`
+    );
 
     // Query 4: Classic books (published before 2002)
-    const classicQuery = `
-      ${baseSelect}${userRatingSelect}
-      ${fromClause}
-      ${userJoin}
-      WHERE EXTRACT(YEAR FROM b.publication_date) < 2002
-      ORDER BY b.average_rating DESC, b.publication_date ASC
-      LIMIT 10;
-    `;
+    const classicQuery = buildQuery(
+      `WHERE EXTRACT(YEAR FROM b.publication_date) < 2002`,
+      `ORDER BY b.average_rating DESC, b.publication_date ASC`
+    );
 
     // Execute all queries concurrently
     const [top2020sResult, allTimeResult, trendingResult, classicResult] = await Promise.all([

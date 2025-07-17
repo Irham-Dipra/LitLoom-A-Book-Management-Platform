@@ -91,6 +91,18 @@
   line-height: 1.0;
 }
 
+.book-author.clickable {
+  color: #3498db;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.book-author.clickable:hover {
+  color: #2980b9;
+  text-decoration: none;
+}
+
 .book-actions {
   display: flex;
   flex-direction: column;
@@ -116,6 +128,17 @@
 
 .wishlist-section:hover {
   background-color: rgba(255, 255, 255, 0.18);
+}
+
+.wishlist-section.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.3);
+}
+
+.wishlist-section.disabled:hover {
+  background-color: rgba(128, 128, 128, 0.1);
 }
 
 .plus-icon {
