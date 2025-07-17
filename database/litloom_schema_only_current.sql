@@ -554,13 +554,11 @@ CREATE TABLE public.user_books (
     user_id integer NOT NULL,
     book_id integer NOT NULL,
     shelf character varying(50) DEFAULT 'want-to-read'::character varying NOT NULL,
-    user_rating integer,
     date_added timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     date_read timestamp without time zone,
     review_id integer,
     notes text,
-    CONSTRAINT user_books_shelf_check CHECK (((shelf)::text = ANY ((ARRAY['want-to-read'::character varying, 'currently-reading'::character varying, 'read'::character varying])::text[]))),
-    CONSTRAINT user_books_user_rating_check CHECK (((user_rating >= 1) AND (user_rating <= 5)))
+    CONSTRAINT user_books_shelf_check CHECK (((shelf)::text = ANY ((ARRAY['want-to-read'::character varying, 'currently-reading'::character varying, 'read'::character varying])::text[])))
 );
 
 
