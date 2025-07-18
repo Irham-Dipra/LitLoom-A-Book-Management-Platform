@@ -1,0 +1,168 @@
+/* CharacterCard.css */
+.character-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 280px;
+  max-width: 320px;
+  min-height: 140px;
+  backdrop-filter: blur(10px);
+}
+
+.character-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(114, 9, 183, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.character-profile-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  height: 100%;
+}
+
+.character-avatar {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid rgba(114, 9, 183, 0.3);
+  transition: border-color 0.3s ease;
+}
+
+.character-card:hover .character-avatar {
+  border-color: rgba(114, 9, 183, 0.6);
+}
+
+.character-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #7209b7, #f72585);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.2rem;
+  border-radius: 50%;
+}
+
+.character-icon {
+  font-size: 1.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.character-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.character-name {
+  color: #7209b7;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.character-description {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.character-card-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(114, 9, 183, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 16px;
+  backdrop-filter: blur(5px);
+}
+
+.character-card:hover .character-card-hover-overlay {
+  opacity: 1;
+}
+
+.character-card-hover-overlay span {
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .character-card {
+    min-width: 260px;
+    max-width: 300px;
+    padding: 16px;
+  }
+  
+  .character-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .character-name {
+    font-size: 1rem;
+  }
+  
+  .character-description {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .character-card {
+    min-width: 240px;
+    max-width: 280px;
+    padding: 14px;
+  }
+  
+  .character-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .character-profile-section {
+    gap: 12px;
+  }
+  
+  .character-name {
+    font-size: 0.95rem;
+  }
+  
+  .character-description {
+    font-size: 0.8rem;
+    -webkit-line-clamp: 2;
+  }
+}

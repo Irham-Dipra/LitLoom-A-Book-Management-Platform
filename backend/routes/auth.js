@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db');
+const { withTransaction } = require('../utils/transactionHelper');
 
 const router = express.Router();
 
@@ -129,17 +130,15 @@ router.post('/signin', [
     // Return user data (excluding password)
     const { password: _, ...userWithoutPassword } = user.rows[0];
 
-    // Log login history
-    await pool.query(
-      'INSERT INTO login_history (user_id, login_time, ip_address) VALUES ($1, NOW(), $2)',
+    // Log login history and update active status using stored procedure
+    const loginResult = await pool.query(
+      'SELECT handle_user_login($1, $2) as success',
       [user.rows[0].id, req.ip || req.connection.remoteAddress || 'unknown']
     );
-
-    // Update user's active status
-    await pool.query(
-      'UPDATE users SET active_status = TRUE WHERE id = $1',
-      [user.rows[0].id]
-    );
+    
+    if (!loginResult.rows[0].success) {
+      throw new Error('Failed to log user login');
+    }
 
     res.json({
       success: true,
@@ -178,24 +177,19 @@ const verifyToken = async (req, res, next) => {
       try {
         const decoded = jwt.decode(token);
         if (decoded && decoded.id) {
-          // Mark the session as logged out due to expiration
-          await pool.query(
-            `UPDATE login_history 
-             SET logout_time = NOW() 
-             WHERE id = (
-               SELECT id FROM login_history 
-               WHERE user_id = $1 AND logout_time IS NULL 
-               ORDER BY login_time DESC 
-               LIMIT 1
-             )`,
-            [decoded.id]
-          );
-          
-          // Update user's active status
-          await pool.query(
-            'UPDATE users SET active_status = FALSE WHERE id = $1',
-            [decoded.id]
-          );
+          // Mark the session as logged out due to expiration using stored procedure
+          try {
+            const expiredLogoutResult = await pool.query(
+              'SELECT handle_user_logout($1) as success',
+              [decoded.id]
+            );
+            
+            if (!expiredLogoutResult.rows[0].success) {
+              console.error('Failed to log expired token logout for user:', decoded.id);
+            }
+          } catch (procedureError) {
+            console.error('Stored procedure error during token expiration logout:', procedureError);
+          }
         }
       } catch (dbError) {
         console.error('Error updating logout time on token expiration:', dbError);
@@ -219,28 +213,17 @@ router.post('/logout', verifyToken, async (req, res) => {
   try {
     console.log('Logout endpoint called for user ID:', req.user.id);
     
-    // Update the most recent login record to add logout time
+    // Update logout time and active status using stored procedure
     const logoutResult = await pool.query(
-      `UPDATE login_history 
-       SET logout_time = NOW() 
-       WHERE id = (
-         SELECT id FROM login_history 
-         WHERE user_id = $1 AND logout_time IS NULL 
-         ORDER BY login_time DESC 
-         LIMIT 1
-       )`,
+      'SELECT handle_user_logout($1) as success',
       [req.user.id]
     );
     
-    console.log('Logout query result - rows affected:', logoutResult.rowCount);
-
-    // Update user's active status
-    const activeResult = await pool.query(
-      'UPDATE users SET active_status = FALSE WHERE id = $1',
-      [req.user.id]
-    );
+    console.log('Logout procedure result:', logoutResult.rows[0].success);
     
-    console.log('Active status update - rows affected:', activeResult.rowCount);
+    if (!logoutResult.rows[0].success) {
+      throw new Error('Failed to log user logout');
+    }
 
     res.json({
       success: true,

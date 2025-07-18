@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
   import { useParams, useNavigate } from 'react-router-dom';
-  import { FaStar, FaCheckCircle, FaPlus, FaCheck, FaBook, FaUser, FaCalendar, FaGlobe } from 'react-icons/fa';
+  import { FaStar, FaCheckCircle, FaPlus, FaCheck, FaBook, FaUser, FaCalendar, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
   import { BiChevronDown } from 'react-icons/bi';
   import RatingComponent from '../components/RatingComponent';
   import Navbar from '../components/Navbar';
+  import BookCard from '../components/BookCard';
   import './IndividualBook.css';
   import Review from '../components/Review';
 
@@ -20,15 +21,20 @@ import React, { useEffect, useState } from 'react';
     const [showShelfDropdown, setShowShelfDropdown] = useState(false);
     const [loggedIn, setLoggedIn] = useState(false);
     const [userId, setUserId] = useState(null);
+    const [showFilters, setShowFilters] = useState(false);
 
     const [reviewTitle, setReviewTitle] = useState('');
     const [reviewBody, setReviewBody] = useState('');
+    const [reviewRating, setReviewRating] = useState(0);
     const [reviewMessage, setReviewMessage] = useState(null);
 
     // New state for reviews
     const [reviews, setReviews] = useState([]);
     const [reviewsLoading, setReviewsLoading] = useState(true);
     const [reviewsError, setReviewsError] = useState(null);
+
+    // Ref for horizontal scrolling
+    const otherBooksScrollRef = useRef(null);
 
     // Load book details + login state
     useEffect(() => {
@@ -87,6 +93,20 @@ import React, { useEffect, useState } from 'react';
       fetchReviews();
     }, [id]);
 
+    // Handle hash scrolling to write review section
+    useEffect(() => {
+      if (window.location.hash === '#write-review') {
+        const timer = setTimeout(() => {
+          const element = document.getElementById('write-review');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 500); // Small delay to ensure the page has loaded
+        
+        return () => clearTimeout(timer);
+      }
+    }, [book]);
+
     // Submit review
     const handleReviewSubmit = async (e) => {
       e.preventDefault();
@@ -94,6 +114,11 @@ import React, { useEffect, useState } from 'react';
 
       if (!reviewTitle.trim() || !reviewBody.trim()) {
         setReviewMessage('❌ Title and body are required.');
+        return;
+      }
+
+      if (reviewRating === 0) {
+        setReviewMessage('❌ Please provide a rating (1-5 stars).');
         return;
       }
 
@@ -113,6 +138,7 @@ import React, { useEffect, useState } from 'react';
             book_id: parseInt(id),
             title: reviewTitle.trim(),
             body: reviewBody.trim(),
+            rating: reviewRating,
             created_at: currentDateTime,
           }),
         });
@@ -125,6 +151,7 @@ import React, { useEffect, useState } from 'react';
         setReviewMessage('✅ Review submitted successfully!');
         setReviewTitle('');
         setReviewBody('');
+        setReviewRating(0);
 
         // Refresh reviews after successful submission
         const refreshRes = await fetch(`http://localhost:3000/reviews/book/${id}`);
@@ -250,6 +277,14 @@ import React, { useEffect, useState } from 'react';
       }
     };
 
+    const handleSearch = (searchTerm) => {
+      navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+    };
+
+    const handleFilterToggle = () => {
+      setShowFilters(!showFilters);
+    };
+
     const getShelfDisplayName = (shelf) => {
       switch (shelf) {
         case 'want-to-read': return 'Want to Read';
@@ -270,7 +305,12 @@ import React, { useEffect, useState } from 'react';
     if (loading) {
       return (
         <div className="book-page">
-          <Navbar loggedIn={loggedIn} />
+          <Navbar 
+            loggedIn={loggedIn} 
+            onSearch={handleSearch}
+            onFilterToggle={handleFilterToggle}
+            hasActiveFilters={showFilters}
+          />
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>Loading book details...</p>
@@ -282,7 +322,12 @@ import React, { useEffect, useState } from 'react';
     if (error) {
       return (
         <div className="book-page">
-          <Navbar loggedIn={loggedIn} />
+          <Navbar 
+            loggedIn={loggedIn} 
+            onSearch={handleSearch}
+            onFilterToggle={handleFilterToggle}
+            hasActiveFilters={showFilters}
+          />
           <div className="error-container">
             <p>Error: {error}</p>
           </div>
@@ -293,7 +338,12 @@ import React, { useEffect, useState } from 'react';
     if (!book) {
       return (
         <div className="book-page">
-          <Navbar loggedIn={loggedIn} />
+          <Navbar 
+            loggedIn={loggedIn} 
+            onSearch={handleSearch}
+            onFilterToggle={handleFilterToggle}
+            hasActiveFilters={showFilters}
+          />
           <div className="error-container">
             <p>No book found.</p>
           </div>
@@ -308,9 +358,29 @@ import React, { useEffect, useState } from 'react';
       return new Date(dateString).getFullYear();
     };
 
+    const scrollOtherBooks = (direction) => {
+      if (otherBooksScrollRef.current) {
+        const scrollAmount = 300; // Adjust scroll distance as needed
+        const scrollLeft = otherBooksScrollRef.current.scrollLeft;
+        const targetScroll = direction === 'left' 
+          ? scrollLeft - scrollAmount 
+          : scrollLeft + scrollAmount;
+        
+        otherBooksScrollRef.current.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+    };
+
     return (
       <div className="goodreads-book-page">
-        <Navbar loggedIn={loggedIn} />
+        <Navbar 
+          loggedIn={loggedIn} 
+          onSearch={handleSearch}
+          onFilterToggle={handleFilterToggle}
+          hasActiveFilters={showFilters}
+        />
 
         <div className="book-page-container">
           {/* Main book information section */}
@@ -332,7 +402,12 @@ import React, { useEffect, useState } from 'react';
               <div className="book-title-section">
                 <h1 className="main-book-title">{book.title}</h1>
                 <div className="author-link">
-                  by <span className="author-name">{book.author_name || 'Unknown Author'}</span>
+                  by <span 
+                    className={`author-name ${book.author_id ? 'clickable' : ''}`}
+                    onClick={book.author_id ? () => navigate(`/author/${book.author_id}`) : undefined}
+                  >
+                    {book.author_name || 'Unknown Author'}
+                  </span>
                 </div>
               </div>
 
@@ -445,6 +520,24 @@ import React, { useEffect, useState } from 'react';
               </div>
               <div className="rating-count">{reviews.length} reviews</div>
             </div>
+
+            {/* Current User Rating Display */}
+            {loggedIn && (
+              <div className="user-rating-display">
+                <div className="user-rating-label">Your Rating</div>
+                <div className="user-rating-stars">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <FaStar 
+                      key={num} 
+                      className={`rating-star ${num <= userRating ? 'filled' : 'empty'}`} 
+                    />
+                  ))}
+                </div>
+                <div className="user-rating-text">
+                  {userRating > 0 ? `${userRating} star${userRating === 1 ? '' : 's'}` : 'Not rated yet'}
+                </div>
+              </div>
+            )}
             
             <div className="rating-breakdown">
               <div className="rating-bar-item">
@@ -483,7 +576,12 @@ import React, { useEffect, useState } from 'react';
               <div className="author-profile">
                 <div className="author-main-info">
                   <div className="author-header">
-                    <h3 className="author-name-large">{book.author_name}</h3>
+                    <h3 
+                      className={`author-name-large ${book.author_id ? 'clickable' : ''}`}
+                      onClick={book.author_id ? () => navigate(`/author/${book.author_id}`) : undefined}
+                    >
+                      {book.author_name}
+                    </h3>
                     {book.author_birth && (
                       <div className="author-details">
                         <span className="author-birth">Born {new Date(book.author_birth).getFullYear()}</span>
@@ -498,15 +596,55 @@ import React, { useEffect, useState } from 'react';
                 
                 <div className="author-books-preview">
                   <h4>More Books by {book.author_name}</h4>
-                  <div className="author-books-placeholder">
-                    <div className="placeholder-content">
-                      <span className="placeholder-icon">📚</span>
-                      <span className="placeholder-text">Coming Soon</span>
-                      <div className="placeholder-description">
-                        We're working on showing other books by this author
+                  {book.other_books && book.other_books.length > 0 ? (
+                    <div className="author-books-scroll-container">
+                      <button 
+                        className="scroll-btn left" 
+                        onClick={() => scrollOtherBooks('left')}
+                        aria-label="Scroll left"
+                      >
+                        <FaChevronLeft />
+                      </button>
+                      
+                      <div className="author-books-scroll" ref={otherBooksScrollRef}>
+                        {book.other_books.map((otherBook) => (
+                          <div key={otherBook.id} className="author-book-card-wrapper">
+                            <BookCard
+                              id={otherBook.id}
+                              title={otherBook.title}
+                              author={book.author_name}
+                              authorId={book.author_id}
+                              averageRating={otherBook.average_rating}
+                              coverUrl={otherBook.cover_image}
+                              userRating={otherBook.user_rating || 0}
+                              isRead={otherBook.shelf === 'read'}
+                              isInUserLibrary={otherBook.shelf !== null}
+                              shelf={otherBook.shelf}
+                              isInWishlist={otherBook.shelf === 'want-to-read'}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <button 
+                        className="scroll-btn right" 
+                        onClick={() => scrollOtherBooks('right')}
+                        aria-label="Scroll right"
+                      >
+                        <FaChevronRight />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="author-books-placeholder">
+                      <div className="placeholder-content">
+                        <span className="placeholder-icon">📚</span>
+                        <span className="placeholder-text">No other books found</span>
+                        <div className="placeholder-description">
+                          This author has only published this book in our database
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -514,7 +652,7 @@ import React, { useEffect, useState } from 'react';
 
           {/* Write Review Section */}
           {loggedIn && userId && (
-            <div className="write-review-modern">
+            <div id="write-review" className="write-review-modern">
               <h2 className="section-title">Write a Review</h2>
               <form onSubmit={handleReviewSubmit} className="review-form-clean">
                 <div className="form-field">
@@ -526,6 +664,20 @@ import React, { useEffect, useState } from 'react';
                     required
                     className="review-title-input"
                   />
+                </div>
+                <div className="form-field">
+                  <label className="rating-label">Rating (Required)</label>
+                  <div className="rating-input-section">
+                    <RatingComponent
+                      currentRating={reviewRating}
+                      onRatingChange={setReviewRating}
+                      isInteractive={true}
+                      size="medium"
+                    />
+                    <span className="rating-text">
+                      {reviewRating === 0 ? 'Please select a rating' : `${reviewRating} star${reviewRating === 1 ? '' : 's'}`}
+                    </span>
+                  </div>
                 </div>
                 <div className="form-field">
                   <textarea

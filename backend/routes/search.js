@@ -149,7 +149,7 @@ router.get('/', async (req, res) => {
 
       // Search Authors
       const authorQuery = `
-        SELECT id, name, bio
+        SELECT id, name, bio, author_image
         FROM authors
         WHERE LOWER(name) LIKE $1
         ORDER BY name

@@ -59,7 +59,7 @@ app.get('/books/:id', async (req, res) => {
         b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
         b.language_id, b.publication_house_id, b.average_rating,
         b.created_at, b.added_by, 
-        a.name as "author_name", a.bio as "author_bio",
+        a.id as "author_id", a.name as "author_name", a.bio as "author_bio",
         l.name as "language_name", l.iso_code as "language_code",
         ph.name as "publisher_name"
     `;
@@ -91,7 +91,34 @@ app.get('/books/:id', async (req, res) => {
     if (book.rows.length === 0) {
       return res.status(404).json({ message: 'Book not found' });
     }
-    res.json(book.rows[0]);
+
+    const bookData = book.rows[0];
+
+    // Get other books by the same author
+    const otherBooksQuery = `
+      SELECT 
+        b.id,
+        b.title,
+        b.cover_image,
+        b.average_rating,
+        b.publication_date,
+        ${userId ? 'ub.shelf, rt.value as user_rating' : 'null as shelf, null as user_rating'}
+      FROM books b
+      JOIN book_authors ba ON b.id = ba.book_id
+      ${userId ? 'LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $2' : ''}
+      ${userId ? 'LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $2' : ''}
+      WHERE ba.author_id = $1 AND b.id != $${userId ? '3' : '2'}
+      ORDER BY b.publication_date DESC, b.id ASC
+      LIMIT 10
+    `;
+
+    const otherBooksParams = userId ? [bookData.author_id, userId, id] : [bookData.author_id, id];
+    const otherBooks = await pool.query(otherBooksQuery, otherBooksParams);
+
+    // Add other books to the response
+    bookData.other_books = otherBooks.rows;
+
+    res.json(bookData);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

@@ -2,6 +2,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db');
+const { withTransaction } = require('../utils/transactionHelper');
+const { StoredProcedures } = require('../utils/storedProcedureHelper');
 
 const router = express.Router();
 
@@ -91,11 +93,14 @@ router.get('/books', verifyToken, async (req, res) => {
     const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
     
     if (sortField === 'rating') {
-      query += ` ORDER BY b.average_rating ${sortOrder}`;
+      query += ` ORDER BY rt.value ${sortOrder}, b.average_rating ${sortOrder}`;
     } else if (sortField === 'title') {
       query += ` ORDER BY b.title ${sortOrder}`;
     } else if (sortField === 'author') {
-      query += ` ORDER BY a.name ${sortOrder}`;
+      query += ` ORDER BY (SELECT a.name FROM authors a 
+                    JOIN book_authors ba ON a.id = ba.author_id 
+                    WHERE ba.book_id = b.id 
+                    ORDER BY a.id ASC LIMIT 1) ${sortOrder}`;
     } else {
       query += ` ORDER BY ub.${sortField} ${sortOrder}`;
     }
@@ -202,45 +207,32 @@ router.post('/books', [
     const userId = req.user.id;
     const { bookId, shelf } = req.body;
 
-    // Check if book exists
-    const bookExists = await pool.query('SELECT id FROM books WHERE id = $1', [bookId]);
-    if (bookExists.rows.length === 0) {
+    // Add book to user's library using stored procedure
+    const userBookId = await StoredProcedures.addBookToLibrary(userId, bookId, shelf || 'want-to-read');
+
+    res.json({ 
+      success: true,
+      message: 'Book added to library successfully',
+      userBookId: userBookId
+    });
+
+  } catch (error) {
+    console.error('Error adding book to library:', error);
+    
+    if (error.message.includes('Book not found')) {
       return res.status(404).json({ 
         success: false,
         message: 'Book not found' 
       });
     }
-
-    // Check if book is already in user's library
-    const existingEntry = await pool.query(
-      'SELECT id FROM user_books WHERE user_id = $1 AND book_id = $2',
-      [userId, bookId]
-    );
-
-    if (existingEntry.rows.length > 0) {
+    
+    if (error.message.includes('Book already in library')) {
       return res.status(400).json({ 
         success: false,
         message: 'Book already in library' 
       });
     }
-
-    // Add book to user's library
-    const insertQuery = `
-      INSERT INTO user_books (user_id, book_id, shelf, date_added)
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-      RETURNING id
-    `;
-
-    const result = await pool.query(insertQuery, [userId, bookId, shelf || null]);
-
-    res.json({ 
-      success: true,
-      message: 'Book added to library successfully',
-      userBookId: result.rows[0].id
-    });
-
-  } catch (error) {
-    console.error('Error adding book to library:', error);
+    
     res.status(500).json({ 
       success: false,
       message: 'Server error while adding book to library' 
@@ -447,41 +439,33 @@ router.delete('/books/:bookId', verifyToken, async (req, res) => {
 router.get('/stats', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-
-    const statsQuery = `
-      SELECT 
-        COUNT(*) as total_books,
-        COUNT(CASE WHEN shelf = 'read' THEN 1 END) as books_read,
-        COUNT(CASE WHEN shelf = 'currently-reading' THEN 1 END) as currently_reading,
-        COUNT(CASE WHEN shelf = 'want-to-read' THEN 1 END) as want_to_read,
-        NULL as avg_rating,
-        0 as rated_books
-      FROM user_books 
-      WHERE user_id = $1
-    `;
-
-    const stats = await pool.query(statsQuery, [userId]);
-
-    // Get reading activity by month (last 12 months)
-    const monthlyQuery = `
-      SELECT 
-        TO_CHAR(date_read, 'YYYY-MM') as month,
-        COUNT(*) as books_read
-      FROM user_books 
-      WHERE user_id = $1 AND date_read IS NOT NULL 
-        AND date_read >= NOW() - INTERVAL '12 months'
-      GROUP BY TO_CHAR(date_read, 'YYYY-MM')
-      ORDER BY month DESC
-    `;
-
-    const monthlyStats = await pool.query(monthlyQuery, [userId]);
+    
+    // Use stored procedures to get comprehensive stats
+    const stats = await StoredProcedures.getUserReadingStats(userId);
+    const monthlyStats = await StoredProcedures.getMonthlyActivity(userId);
+    const genreStats = await StoredProcedures.getGenreStats(userId);
+    const authorStats = await StoredProcedures.getAuthorStats(userId);
+    const bookLengthStats = await StoredProcedures.getBookLengthStats(userId);
+    const ratingDistribution = await StoredProcedures.getRatingDistribution(userId);
+    
+    // Convert rating distribution to object format
+    const ratingDistObj = {};
+    for (let i = 1; i <= 5; i++) {
+      ratingDistObj[i] = 0;
+    }
+    ratingDistribution.forEach(row => {
+      ratingDistObj[row.rating] = parseInt(row.count);
+    });
 
     res.json({
       success: true,
-      stats: stats.rows[0],
-      monthlyStats: monthlyStats.rows
+      stats: stats,
+      monthlyStats: monthlyStats,
+      genreStats: genreStats,
+      authorStats: authorStats,
+      bookLengthStats: bookLengthStats,
+      ratingDistribution: ratingDistObj
     });
-
   } catch (error) {
     console.error('Error fetching reading stats:', error);
     res.status(500).json({ 
@@ -564,6 +548,82 @@ router.post('/books/:bookId/rate', verifyToken, async (req, res) => {
     });
   } finally {
     client.release();
+  }
+});
+
+// Set user's reading goal
+router.post('/reading-goal', verifyToken, async (req, res) => {
+  try {
+    const { goal } = req.body;
+    const userId = req.user.id;
+
+    // Validate goal
+    if (!goal || !Number.isInteger(goal) || goal < 1 || goal > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Goal must be an integer between 1 and 1000'
+      });
+    }
+
+    // Use stored procedure to update reading goal
+    const result = await pool.query('SELECT update_reading_goal($1, $2) as reading_goal', [userId, goal]);
+
+    res.json({
+      success: true,
+      message: 'Reading goal updated successfully',
+      reading_goal: result.rows[0].reading_goal
+    });
+  } catch (error) {
+    console.error('Error updating reading goal:', error);
+    
+    if (error.message.includes('User not found')) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    if (error.message.includes('Goal must be between')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating reading goal'
+    });
+  }
+});
+
+// Get user's reading goal
+router.get('/reading-goal', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const goalQuery = `
+      SELECT reading_goal FROM users WHERE id = $1
+    `;
+    const result = await pool.query(goalQuery, [userId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      reading_goal: result.rows[0].reading_goal || 12
+    });
+  } catch (error) {
+    console.error('Error fetching reading goal:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching reading goal'
+    });
   }
 });
 

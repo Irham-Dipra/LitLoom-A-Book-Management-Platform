@@ -12,6 +12,15 @@ function Navbar({ loggedIn, onSearch, onFilterToggle, hasActiveFilters = false }
   const handleIconClick = () => {
     navigate(loggedIn ? '/profile' : '/login');
   };
+
+  const defaultSearchHandler = (searchTerm) => {
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
+  const defaultFilterHandler = () => {
+    // Default filter behavior - could be enhanced later
+    console.log('Filter button clicked');
+  };
   
   return (
     <div className="navbar">
@@ -27,11 +36,11 @@ function Navbar({ loggedIn, onSearch, onFilterToggle, hasActiveFilters = false }
 
       <div className="navbar-right">
         <div className="search-bar-wrapper">
-          <SearchBar onSearch={onSearch} />
+          <SearchBar onSearch={onSearch || defaultSearchHandler} />
         </div>
         <button 
           className={`navbar-filter-btn ${hasActiveFilters ? 'active' : ''}`} 
-          onClick={onFilterToggle}
+          onClick={onFilterToggle || defaultFilterHandler}
         >
           <FiFilter />
           {hasActiveFilters && <div className="filter-active-indicator"></div>}
