@@ -71,6 +71,7 @@ const ModeratorBooks = () => {
         return;
       }
       
+      
       const params = new URLSearchParams();
       
       // Add search query
@@ -421,7 +422,7 @@ const ModeratorBooks = () => {
                   <td>
                     <div className="rating-cell">
                       <span className="rating-value">
-                        {book.average_rating ? book.average_rating.toFixed(1) : 'N/A'}
+                        {book.average_rating && !isNaN(parseFloat(book.average_rating)) ? parseFloat(book.average_rating).toFixed(1) : 'N/A'}
                       </span>
                       <span className="rating-count">
                         ({book.rating_count || 0} ratings)
@@ -607,14 +608,14 @@ const ModeratorBooks = () => {
           <div className="modal">
             <h2>⚠️ Confirm Book Deletion</h2>
             <p>Are you sure you want to delete <strong>"{selectedBook?.title}"</strong>?</p>
-            <p className="warning-text">
-              This action will:
+            <div className="warning-text">
+              <p>This action will:</p>
               <ul>
                 <li>✅ Preserve user reviews, ratings, and reading history</li>
                 <li>🗑️ Remove the book from search results</li>
                 <li>📊 Log all data for recovery if needed</li>
               </ul>
-            </p>
+            </div>
             
             <div className="form-group">
               <label>Deletion Reason (optional):</label>

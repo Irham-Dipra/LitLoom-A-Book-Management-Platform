@@ -14,17 +14,14 @@ const verifyModerator = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-here');
     
     // Check if user exists and is moderator
-    const userResult = await pool.query('SELECT id, role FROM users WHERE id = $1', [decoded.id]);
+    const userResult = await pool.query('SELECT u.id, u.username FROM users u JOIN moderator_accounts m ON u.id = m.user_id WHERE u.id = $1', [decoded.id]);
     if (userResult.rows.length === 0) {
-      return res.status(401).json({ success: false, message: 'User not found.' });
-    }
-    
-    const user = userResult.rows[0];
-    if (user.role !== 'moderator') {
       return res.status(403).json({ success: false, message: 'Access denied. Moderator privileges required.' });
     }
     
-    req.user = { id: decoded.id, role: user.role };
+    const user = userResult.rows[0];
+    
+    req.user = { id: decoded.id, role: 'moderator' };
     next();
   } catch (error) {
     res.status(400).json({ success: false, message: 'Invalid token' });
@@ -352,7 +349,9 @@ router.delete('/books/:id', verifyModerator, async (req, res) => {
 
   } catch (error) {
     console.error('Error deleting book:', error);
-    res.status(500).json({ success: false, message: 'Server error deleting book' });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ success: false, message: 'Server error deleting book', error: error.message });
   }
 });
 
