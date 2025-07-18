@@ -354,6 +354,38 @@
   margin: 30px 0;
 }
 
+/* User Rating Display */
+.user-rating-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 140px;
+  padding: 15px;
+  background: rgba(76, 201, 240, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(76, 201, 240, 0.2);
+}
+
+.user-rating-label {
+  font-size: 0.9rem;
+  color: #4cc9f0;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.user-rating-stars {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.user-rating-text {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
 /* Section Styling */
 .section-title {
   font-size: 1.6rem;
@@ -407,6 +439,17 @@
   font-weight: 700;
   color: #4cc9f0;
   margin: 0 0 10px 0;
+}
+
+.author-name-large.clickable {
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.author-name-large.clickable:hover {
+  color: #7dd3fc;
+  text-decoration: underline;
 }
 
 .author-details {
@@ -476,6 +519,69 @@
   text-align: center;
 }
 
+/* Other Books Horizontal Scroll */
+.author-books-scroll-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.author-books-scroll {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 10px 0;
+  flex: 1;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.author-books-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.author-book-card-wrapper {
+  flex: 0 0 auto;
+  width: 180px;
+}
+
+.scroll-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.scroll-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #4cc9f0;
+  transform: scale(1.1);
+}
+
+.scroll-btn:active {
+  transform: scale(0.95);
+}
+
+.scroll-btn.left {
+  order: -1;
+}
+
+.scroll-btn.right {
+  order: 1;
+}
+
 /* Write Review Section */
 .write-review-modern {
   margin: 40px 0;
@@ -493,6 +599,26 @@
 .form-field {
   display: flex;
   flex-direction: column;
+}
+
+.rating-label {
+  display: block;
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.rating-input-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.rating-text {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  font-style: italic;
 }
 
 .review-title-input, .review-body-input {
@@ -719,6 +845,13 @@
     flex-direction: column;
     gap: 20px;
   }
+
+  .user-rating-display {
+    min-width: auto;
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+  }
   
   .book-stats-grid {
     grid-template-columns: 1fr;
@@ -727,6 +860,20 @@
   .author-profile {
     grid-template-columns: 1fr;
     gap: 25px;
+  }
+
+  .author-books-scroll-container {
+    gap: 10px;
+  }
+
+  .author-book-card-wrapper {
+    width: 140px;
+  }
+
+  .scroll-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 0.8rem;
   }
   
   .goodreads-review-item {

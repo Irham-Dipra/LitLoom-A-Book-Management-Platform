@@ -5,6 +5,12 @@
   color: white;
 }
 
+/* Container for filter bar - positioned right after navbar */
+.filter-container {
+  width: 100%;
+  z-index: 999;
+}
+
 .mybooks-content {
   max-width: 1400px;
   margin: 0 auto;
@@ -374,6 +380,64 @@
   color: white;
 }
 
+/* Shelf editing dropdown styles */
+.shelf-edit-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shelf-edit-dropdown select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shelf-edit-dropdown select:focus {
+  outline: none;
+  border-color: #4cc9f0;
+  box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+}
+
+.shelf-edit-dropdown select option {
+  background: #2c5364;
+  color: white;
+  padding: 4px;
+}
+
+.cancel-edit-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+}
+
+.cancel-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.shelf-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .book-review a {
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
@@ -382,6 +446,21 @@
 }
 
 .book-review a:hover {
+  color: white;
+}
+
+.write-review-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  font-family: inherit;
+  padding: 0;
+}
+
+.write-review-btn:hover {
   color: white;
 }
 

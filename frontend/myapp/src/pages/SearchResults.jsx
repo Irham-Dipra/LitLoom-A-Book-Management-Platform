@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Homescroll from '../components/Homescroll';
+import SearchResultsScroll from '../components/SearchResultsScroll';
 import SearchBar from '../components/SearchBar';
 import Navbar from '../components/Navbar';
 import './SearchResults.css';
@@ -13,6 +14,7 @@ function SearchResults() {
   const [loading, setLoading] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [error, setError] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Memoize the search parameters to prevent unnecessary re-renders
   const searchParams = useMemo(() => {
@@ -97,31 +99,30 @@ function SearchResults() {
           }
 
           if (data.data.authors && data.data.authors.length > 0) {
-            const authorBooks = data.data.authors.map(author => ({
+            const authorItems = data.data.authors.map(author => ({
               id: `author-${author.id}`,
               title: author.name,
-              cover_image: '',
               description: author.bio || 'No biography available',
+              author_image: author.author_image || null,
               type: 'author'
             }));
             newSections.push({ 
               title: `Authors matching "${searchParams.textQuery}"`, 
-              books: authorBooks,
+              items: authorItems,
               type: 'authors'
             });
           }
 
           if (data.data.characters && data.data.characters.length > 0) {
-            const characterBooks = data.data.characters.map(char => ({
+            const characterItems = data.data.characters.map(char => ({
               id: `character-${char.id}`,
               title: char.name,
-              cover_image: '',
               description: char.description || 'No description available',
               type: 'character'
             }));
             newSections.push({ 
               title: `Characters matching "${searchParams.textQuery}"`, 
-              books: characterBooks,
+              items: characterItems,
               type: 'characters'
             });
           }
@@ -152,6 +153,10 @@ function SearchResults() {
       navigate(`/search?q=${encodeURIComponent(q.trim())}`);
     }
   }, [navigate]);
+
+  const handleFilterToggle = () => {
+    setShowFilters(!showFilters);
+  };
 
   const getPageTitle = () => {
     if (searchParams.isFiltered) {
@@ -210,7 +215,12 @@ function SearchResults() {
 
   return (
     <div className="home-hero">
-      <Navbar loggedIn={loggedIn} onSearch={handleSearch} />
+      <Navbar 
+        loggedIn={loggedIn} 
+        onSearch={handleSearch}
+        onFilterToggle={handleFilterToggle}
+        hasActiveFilters={searchParams.isFiltered || showFilters}
+      />
 
       <div className="search-results-header">
         <h2 style={{ color: 'white', marginBottom: '1rem' }}>
@@ -240,11 +250,20 @@ function SearchResults() {
       )}
 
       {!loading && sections.map((section, i) => (
-        <Homescroll 
-          key={`${section.type}-${i}`} 
-          title={section.title} 
-          books={section.books} 
-        />
+        section.type === 'books' ? (
+          <Homescroll 
+            key={`${section.type}-${i}`} 
+            title={section.title} 
+            books={section.books} 
+          />
+        ) : (
+          <SearchResultsScroll
+            key={`${section.type}-${i}`} 
+            title={section.title} 
+            items={section.items} 
+            type={section.type}
+          />
+        )
       ))}
     </div>
   );

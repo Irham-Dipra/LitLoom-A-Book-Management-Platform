@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { FaEdit, FaTimes, FaRss } from 'react-icons/fa';
-import { BiGridAlt, BiListUl } from 'react-icons/bi';
+import FilterBar from '../components/FilterBar';
+import { FaEdit, FaRss } from 'react-icons/fa';
 import RatingComponent from '../components/RatingComponent';
 import './MyBooks.css';
 
@@ -11,13 +11,38 @@ function MyBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedShelf, setSelectedShelf] = useState('all');
-  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [sortBy, setSortBy] = useState('date_added');
   const [sortOrder, setSortOrder] = useState('desc');
   const [booksPerPage, setBooksPerPage] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [shelves, setShelves] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [editingShelf, setEditingShelf] = useState(null); // bookId of book being edited
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Filter state like in Home page
+  const [filters, setFilters] = useState({
+    language: [],
+    genre: [],
+    author: [],
+    publisher: [],
+    country: [],
+    pubDateRange: [1800, 2025],
+    ratingRange: [0, 5]
+  });
+
+  // Check if any filters are active (same as Home page)
+  const hasActiveFilters = () => {
+    return (
+      filters.language.length > 0 ||
+      filters.genre.length > 0 ||
+      filters.author.length > 0 ||
+      filters.publisher.length > 0 ||
+      filters.country.length > 0 ||
+      (filters.pubDateRange && (filters.pubDateRange[0] !== 1800 || filters.pubDateRange[1] !== 2025)) ||
+      (filters.ratingRange && (filters.ratingRange[0] !== 0 || filters.ratingRange[1] !== 5))
+    );
+  };
   
   const navigate = useNavigate();
 
@@ -71,7 +96,7 @@ function MyBooks() {
     }
   };
 
-  const handleShelfChange = (shelf) => {
+  const handleShelfFilter = (shelf) => {
     setSelectedShelf(shelf);
     setCurrentPage(1);
   };
@@ -121,6 +146,59 @@ function MyBooks() {
     }
   };
 
+  const handleShelfEdit = (bookId) => {
+    setEditingShelf(bookId);
+  };
+
+  const handleShelfChange = async (bookId, newShelf) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          shelf: newShelf
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update shelf');
+      }
+
+      // Update the book shelf in the local state
+      setBooks(books.map(book => 
+        book.id === bookId ? { ...book, shelf: newShelf } : book
+      ));
+
+      // Close the edit mode
+      setEditingShelf(null);
+
+      // Refresh shelf counts
+      fetchShelves();
+
+      console.log('✅ Shelf updated successfully!');
+      
+    } catch (error) {
+      console.error('Failed to update shelf:', error);
+      alert('Failed to update shelf. Please try again.');
+    }
+  };
+
+  const cancelShelfEdit = () => {
+    setEditingShelf(null);
+  };
+
+  const handleSearch = (searchTerm) => {
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
+  const handleFilterToggle = () => {
+    setIsFilterOpen(!isFilterOpen);
+  };
+
   const renderStars = (rating) => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -151,7 +229,12 @@ function MyBooks() {
   if (loading) {
     return (
       <div className="mybooks-container">
-        <Navbar loggedIn={loggedIn} />
+        <Navbar 
+          loggedIn={loggedIn} 
+          onSearch={handleSearch}
+          onFilterToggle={handleFilterToggle}
+          hasActiveFilters={hasActiveFilters()}
+        />
         <div className="loading-spinner">Loading your books...</div>
       </div>
     );
@@ -159,30 +242,28 @@ function MyBooks() {
 
   return (
     <div className="mybooks-container">
-      <Navbar loggedIn={loggedIn} />
+      <Navbar 
+        loggedIn={loggedIn} 
+        onSearch={handleSearch}
+        onFilterToggle={handleFilterToggle}
+        hasActiveFilters={hasActiveFilters()}
+      />
+
+      {/* Filter container positioned right after navbar */}
+      <div className="filter-container">
+        <FilterBar
+          filters={filters}
+          setFilters={setFilters}
+          isOpen={isFilterOpen}
+          setIsOpen={setIsFilterOpen}
+        />
+      </div>
       
       <div className="mybooks-content">
         <div className="mybooks-header">
           <h1>My Books</h1>
           <div className="mybooks-actions">
-            <button className="batch-edit-btn">Batch Edit</button>
-            <button className="settings-btn">Settings</button>
-            <button className="stats-btn">Stats</button>
-            <button className="print-btn">Print</button>
-            <div className="view-toggle">
-              <button 
-                className={`view-btn ${viewMode === 'table' ? 'active' : ''}`}
-                onClick={() => setViewMode('table')}
-              >
-                <BiListUl />
-              </button>
-              <button 
-                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setViewMode('grid')}
-              >
-                <BiGridAlt />
-              </button>
-            </div>
+            <button className="stats-btn" onClick={() => navigate('/my-books/stats')}>Stats</button>
           </div>
         </div>
 
@@ -198,50 +279,29 @@ function MyBooks() {
               <div className="shelf-list">
                 <div 
                   className={`shelf-item ${selectedShelf === 'all' ? 'active' : ''}`}
-                  onClick={() => handleShelfChange('all')}
+                  onClick={() => handleShelfFilter('all')}
                 >
                   <span>All ({books.length})</span>
                 </div>
                 <div 
                   className={`shelf-item ${selectedShelf === 'want-to-read' ? 'active' : ''}`}
-                  onClick={() => handleShelfChange('want-to-read')}
+                  onClick={() => handleShelfFilter('want-to-read')}
                 >
                   <span>Want to Read ({getShelfCount('want-to-read')})</span>
                 </div>
                 <div 
                   className={`shelf-item ${selectedShelf === 'currently-reading' ? 'active' : ''}`}
-                  onClick={() => handleShelfChange('currently-reading')}
+                  onClick={() => handleShelfFilter('currently-reading')}
                 >
                   <span>Currently Reading ({getShelfCount('currently-reading')})</span>
                 </div>
                 <div 
                   className={`shelf-item ${selectedShelf === 'read' ? 'active' : ''}`}
-                  onClick={() => handleShelfChange('read')}
+                  onClick={() => handleShelfFilter('read')}
                 >
                   <span>Read ({getShelfCount('read')})</span>
                 </div>
               </div>
-              <button className="add-shelf-btn">Add shelf</button>
-            </div>
-
-            <div className="activity-section">
-              <h3>Your reading activity</h3>
-              <ul className="activity-list">
-                <li><a href="/review-drafts">Review Drafts</a></li>
-                <li><a href="/kindle-highlights">Kindle Notes & Highlights</a></li>
-                <li><a href="/reading-challenge">Reading Challenge</a></li>
-                <li><a href="/year-in-books">Year in Books</a></li>
-                <li><a href="/reading-stats">Reading stats</a></li>
-              </ul>
-            </div>
-
-            <div className="tools-section">
-              <h3>Tools</h3>
-              <ul className="tools-list">
-                <li><a href="/find-duplicates">Find duplicates</a></li>
-                <li><a href="/widgets">Widgets</a></li>
-                <li><a href="/import-export">Import and export</a></li>
-              </ul>
             </div>
           </div>
 
@@ -261,7 +321,10 @@ function MyBooks() {
                 <span> sort: </span>
                 <select 
                   value={sortBy} 
-                  onChange={(e) => handleSortChange(e.target.value)}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 >
                   <option value="date_added">Date added</option>
                   <option value="date_read">Date read</option>
@@ -275,7 +338,10 @@ function MyBooks() {
                       type="radio" 
                       value="asc" 
                       checked={sortOrder === 'asc'}
-                      onChange={(e) => setSortOrder(e.target.value)}
+                      onChange={(e) => {
+                        setSortOrder(e.target.value);
+                        setCurrentPage(1);
+                      }}
                     />
                     asc.
                   </label>
@@ -284,7 +350,10 @@ function MyBooks() {
                       type="radio" 
                       value="desc" 
                       checked={sortOrder === 'desc'}
-                      onChange={(e) => setSortOrder(e.target.value)}
+                      onChange={(e) => {
+                        setSortOrder(e.target.value);
+                        setCurrentPage(1);
+                      }}
                     />
                     desc.
                   </label>
@@ -357,14 +426,47 @@ function MyBooks() {
                           />
                         </td>
                         <td className="book-shelves">
-                          <span className="shelf-tag">{book.shelf || 'to-read'}</span>
-                          <button className="edit-shelf-btn">[edit]</button>
+                          {editingShelf === book.id ? (
+                            <div className="shelf-edit-dropdown">
+                              <select 
+                                value={book.shelf || 'want-to-read'}
+                                onChange={(e) => handleShelfChange(book.id, e.target.value)}
+                                autoFocus
+                              >
+                                <option value="want-to-read">Want to Read</option>
+                                <option value="currently-reading">Currently Reading</option>
+                                <option value="read">Read</option>
+                              </select>
+                              <button 
+                                className="cancel-edit-btn"
+                                onClick={cancelShelfEdit}
+                                title="Cancel"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="shelf-display">
+                              <span className="shelf-tag">{book.shelf || 'want-to-read'}</span>
+                              <button 
+                                className="edit-shelf-btn"
+                                onClick={() => handleShelfEdit(book.id)}
+                              >
+                                [edit]
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td className="book-review">
                           {book.review ? (
                             <a href={`/review/${book.review_id}`}>View review</a>
                           ) : (
-                            <a href={`/write-review/${book.id}`}>Write a review</a>
+                            <button 
+                              className="write-review-btn"
+                              onClick={() => navigate(`/book/${book.id}#write-review`)}
+                            >
+                              Write a review
+                            </button>
                           )}
                         </td>
                         <td className="date-read">
@@ -372,12 +474,6 @@ function MyBooks() {
                         </td>
                         <td className="date-added">
                           {formatDate(book.date_added)}
-                          <div className="edit-actions">
-                            <button className="edit-btn">edit</button>
-                            <button className="remove-btn">
-                              <FaTimes />
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))}
