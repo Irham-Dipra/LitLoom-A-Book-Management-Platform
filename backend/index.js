@@ -20,6 +20,8 @@ const addBookRoutes = require('./routes/addBook');
 const reviewRoutes = require('./routes/reviews');
 const userBooksRoutes = require('./routes/userBooks');
 const authorRoutes = require('./routes/authors');
+const analyticsRoutes = require('./routes/analytics');
+const moderatorBooksRoutes = require('./routes/moderatorBooks');
 
 
 
@@ -33,6 +35,8 @@ app.use('/addBook', addBookRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/myBooks', userBooksRoutes);
 app.use('/authors', authorRoutes);
+app.use('/analytics', analyticsRoutes);
+app.use('/moderator', moderatorBooksRoutes);
 
 app.get('/books/:id', async (req, res) => {
   const { id } = req.params; 
