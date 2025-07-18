@@ -12,6 +12,9 @@ import MyBooks from './pages/MyBooks';
 import ReadingStats from './pages/ReadingStats';
 import Author from './pages/Author';
 import Browse from './pages/Browse';
+import ModeratorDash from './pages/ModeratorDash';
+import Analytics from './components/Analytics';
+import ModeratorBooks from './components/ModeratorBooks';
 
 function App() {
   return (
@@ -29,6 +32,9 @@ function App() {
         <Route path="/my-books/stats" element={<ReadingStats />} />
         <Route path="/author/:id" element={<Author />} />
         <Route path="/browse" element={<Browse />} />
+        <Route path="/moderator-dashboard" element={<ModeratorDash />} />
+        <Route path="/moderator-books" element={<ModeratorBooks />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </Router>
   );

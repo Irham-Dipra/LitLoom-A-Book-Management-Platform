@@ -228,6 +228,9 @@ const Profile = () => {
             <div className="profile-info">
               <h1 className="profile-name">{getFullName(user)}</h1>
               <p className="profile-username">@{user.username}</p>
+              {user.is_moderator && (
+                <p className="profile-moderator-badge">Moderator</p>
+              )}
               {user.bio && <p className="profile-bio">{user.bio}</p>}
             </div>
           </div>
@@ -235,6 +238,11 @@ const Profile = () => {
             <button className="edit-profile-btn" onClick={handleEditProfile}>
               ✏️ Edit Profile
             </button>
+            {user.is_moderator && (
+              <button className="moderator-dashboard-btn" onClick={() => navigate('/moderator-dashboard')}>
+                🔧 Moderator Dashboard
+              </button>
+            )}
             <button className="logout-btn" onClick={handleLogout}>
               🚪 Logout
             </button>
