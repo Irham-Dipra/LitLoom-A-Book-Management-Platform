@@ -419,7 +419,7 @@ const Analytics = () => {
 
       <div className="analytics-controls">
         <div className="tab-buttons">
-          {['genre', 'author', 'publisher', 'content-gaps', 'user-activity', 'user-engagement', 'user-base'].map(tab => (
+          {['genre', 'author', 'publisher', 'content-gaps', 'user-activity', 'user-engagement'].map(tab => (
             <button
               key={tab}
               className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
@@ -427,14 +427,13 @@ const Analytics = () => {
             >
               {tab === 'user-activity' ? '⏰ User Activity' : 
                tab === 'user-engagement' ? '🏆 User Engagement' :
-               tab === 'user-base' ? '👥 User Base' :
                tab === 'content-gaps' ? '🔍 Content Gaps' :
                `${tab.charAt(0).toUpperCase() + tab.slice(1)} Analysis`}
             </button>
           ))}
         </div>
 
-        {!['user-activity', 'user-engagement', 'user-base', 'content-gaps'].includes(activeTab) && (
+        {!['user-activity', 'user-engagement', 'content-gaps'].includes(activeTab) && (
           <div className="filter-controls">
             <div className="date-filter">
               <label>Start Date:</label>
@@ -534,7 +533,7 @@ const Analytics = () => {
         )}
       </div>
 
-      {['user-activity', 'user-engagement', 'user-base'].includes(activeTab) ? (
+      {['user-activity', 'user-engagement'].includes(activeTab) ? (
         <UserAnalytics 
           activeTab={activeTab}
           onUserClick={handleUserClick}

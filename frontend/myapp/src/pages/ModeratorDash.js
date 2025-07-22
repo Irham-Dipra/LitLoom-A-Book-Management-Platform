@@ -39,6 +39,10 @@ const ModeratorDash = () => {
     navigate('/moderator-books');
   };
 
+  const handleUserManagementClick = () => {
+    navigate('/user-management');
+  };
+
   return (
     <div className="moderator-dashboard">
       <div className="moderator-header">
@@ -57,9 +61,9 @@ const ModeratorDash = () => {
           <h3>📖 Manage Books</h3>
           <p>Update or delete existing books</p>
         </div>
-        <div className="dashboard-card">
-          <h3>Users Management</h3>
-          <p>Manage user accounts and permissions</p>
+        <div className="dashboard-card" onClick={handleUserManagementClick} style={{ cursor: 'pointer' }}>
+          <h3>👥 Users Management</h3>
+          <p>Manage user accounts, search users, and control activation status</p>
         </div>
         <div className="dashboard-card">
           <h3>Content Moderation</h3>
