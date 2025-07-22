@@ -232,6 +232,30 @@ const Profile = () => {
                 <p className="profile-moderator-badge">Moderator</p>
               )}
               {user.bio && <p className="profile-bio">{user.bio}</p>}
+              
+              {/* Deactivation Status */}
+              {!user.is_active && (
+                <div className="deactivation-status">
+                  <div className="deactivation-header">
+                    <span className="deactivation-badge">🚫 Account Deactivated</span>
+                    {user.days_until_reactivation !== null && user.days_until_reactivation > 0 && (
+                      <span className="reactivation-countdown">
+                        Reactivates in {user.days_until_reactivation} days
+                      </span>
+                    )}
+                  </div>
+                  {user.deactivation_reason && (
+                    <div className="deactivation-reason">
+                      <strong>Reason:</strong> {user.deactivation_reason}
+                    </div>
+                  )}
+                  {user.deactivated_at && (
+                    <div className="deactivation-date">
+                      <strong>Deactivated on:</strong> {new Date(user.deactivated_at).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="profile-actions">

@@ -40,21 +40,13 @@ const UserAnalytics = ({ activeTab, onUserClick }) => {
         case 'user-engagement':
           endpoint = '/analytics/user-engagement';
           break;
-        case 'user-base':
-          endpoint = '/analytics/user-base-overview';
-          break;
       }
 
       const response = await fetch(`http://localhost:3000${endpoint}?${params}`, { headers });
       const result = await response.json();
 
       if (result.success) {
-        if (activeTab === 'user-base') {
-          setData(result.users || []);
-          setSummary(result.summary || {});
-        } else {
-          setData(result.data || []);
-        }
+        setData(result.data || []);
       } else {
         console.error('Failed to fetch data:', result.message);
       }
@@ -219,83 +211,6 @@ const UserAnalytics = ({ activeTab, onUserClick }) => {
     );
   };
 
-  const renderUserBaseOverview = () => {
-    if (loading) return <div className="loading-spinner">Loading user base data...</div>;
-
-    return (
-      <div className="user-base-container">
-        <div className="user-summary-grid">
-          <div className="summary-stat">
-            <div className="stat-icon">👥</div>
-            <div className="stat-info">
-              <div className="stat-value">{summary.total_users || 0}</div>
-              <div className="stat-label">Total Users</div>
-            </div>
-          </div>
-          <div className="summary-stat">
-            <div className="stat-icon">🟢</div>
-            <div className="stat-info">
-              <div className="stat-value">{summary.active_users || 0}</div>
-              <div className="stat-label">Active Users</div>
-            </div>
-          </div>
-          <div className="summary-stat">
-            <div className="stat-icon">🔴</div>
-            <div className="stat-info">
-              <div className="stat-value">{summary.inactive_users || 0}</div>
-              <div className="stat-label">Inactive Users</div>
-            </div>
-          </div>
-          <div className="summary-stat">
-            <div className="stat-icon">🆕</div>
-            <div className="stat-info">
-              <div className="stat-value">{summary.new_users_week || 0}</div>
-              <div className="stat-label">New This Week</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="user-list-container">
-          <h3>👤 User Details</h3>
-          <div className="user-list">
-            {data.map(user => (
-              <div 
-                key={user.id} 
-                className={`user-item ${user.active_status ? 'active' : 'inactive'}`}
-                onClick={() => handleUserClick(user.id)}
-              >
-                <div className="user-avatar">
-                  {user.first_name ? user.first_name.charAt(0) : user.username.charAt(0)}
-                </div>
-                <div className="user-details">
-                  <div className="user-name">
-                    {user.first_name && user.last_name 
-                      ? `${user.first_name} ${user.last_name}` 
-                      : user.username}
-                  </div>
-                  <div className="user-email">{user.email}</div>
-                  <div className="user-meta">
-                    <span className="joined">Joined: {new Date(user.created_at).toLocaleDateString()}</span>
-                    {user.last_login && (
-                      <span className="last-login">
-                        Last login: {new Date(user.last_login).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="user-status">
-                  <span className={`status-badge ${user.active_status ? 'active' : 'inactive'}`}>
-                    {user.active_status ? 'Active' : 'Inactive'}
-                  </span>
-                  <span className="login-count">{user.login_count} logins</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const renderChart = () => {
     switch (activeTab) {
@@ -303,8 +218,6 @@ const UserAnalytics = ({ activeTab, onUserClick }) => {
         return renderUserActivityChart();
       case 'user-engagement':
         return renderUserEngagementChart();
-      case 'user-base':
-        return renderUserBaseOverview();
       default:
         return <div>Select a tab to view analytics</div>;
     }

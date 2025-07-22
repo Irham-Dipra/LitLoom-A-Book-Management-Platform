@@ -15,6 +15,7 @@ import Browse from './pages/Browse';
 import ModeratorDash from './pages/ModeratorDash';
 import Analytics from './components/Analytics';
 import ModeratorBooks from './components/ModeratorBooks';
+import UserManagement from './components/UserManagement';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
         <Route path="/browse" element={<Browse />} />
         <Route path="/moderator-dashboard" element={<ModeratorDash />} />
         <Route path="/moderator-books" element={<ModeratorBooks />} />
+        <Route path="/user-management" element={<UserManagement />} />
         <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </Router>

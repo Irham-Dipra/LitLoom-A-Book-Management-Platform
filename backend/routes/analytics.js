@@ -681,7 +681,7 @@ router.get('/user-engagement', verifyToken, async (req, res) => {
         u.last_name,
         u.email,
         u.created_at,
-        u.active_status,
+        u.is_active,
         COALESCE(review_count, 0) as reviews,
         COALESCE(comment_count, 0) as comments,
         COALESCE(vote_count, 0) as votes,
@@ -732,7 +732,7 @@ router.get('/user-engagement', verifyToken, async (req, res) => {
         last_name: row.last_name,
         email: row.email,
         created_at: row.created_at,
-        active_status: row.active_status,
+        active_status: row.is_active,
         reviews: parseInt(row.reviews),
         comments: parseInt(row.comments),
         votes: parseInt(row.votes),
@@ -754,8 +754,8 @@ router.get('/user-base-overview', verifyToken, async (req, res) => {
     const summaryQuery = `
       SELECT 
         COUNT(*) as total_users,
-        COUNT(CASE WHEN active_status = true THEN 1 END) as active_users,
-        COUNT(CASE WHEN active_status = false THEN 1 END) as inactive_users,
+        COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+        COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_users,
         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as new_users_week,
         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as new_users_month
       FROM users
@@ -772,7 +772,20 @@ router.get('/user-base-overview', verifyToken, async (req, res) => {
         u.first_name,
         u.last_name,
         u.created_at,
-        u.active_status,
+        u.is_active,
+        u.deactivation_reason,
+        u.deactivated_at,
+        u.deactivation_duration_days,
+        u.auto_reactivate_at,
+        CASE 
+          WHEN u.is_active = FALSE AND u.auto_reactivate_at IS NOT NULL THEN
+            CASE 
+              WHEN u.auto_reactivate_at > CURRENT_TIMESTAMP THEN
+                EXTRACT(DAYS FROM (u.auto_reactivate_at - CURRENT_TIMESTAMP))::INTEGER
+              ELSE 0
+            END
+          ELSE NULL
+        END as days_until_reactivation,
         lh.last_login,
         lh.login_count
       FROM users u
@@ -790,9 +803,9 @@ router.get('/user-base-overview', verifyToken, async (req, res) => {
     
     if (status) {
       if (status === 'active') {
-        detailQuery += ' WHERE u.active_status = true';
+        detailQuery += ' WHERE u.is_active = true';
       } else if (status === 'inactive') {
-        detailQuery += ' WHERE u.active_status = false';
+        detailQuery += ' WHERE u.is_active = false';
       } else if (status === 'new') {
         detailQuery += ' WHERE u.created_at >= NOW() - INTERVAL \'7 days\'';
       }
@@ -822,7 +835,12 @@ router.get('/user-base-overview', verifyToken, async (req, res) => {
         first_name: row.first_name,
         last_name: row.last_name,
         created_at: row.created_at,
-        active_status: row.active_status,
+        active_status: row.is_active,
+        deactivation_reason: row.deactivation_reason,
+        deactivated_at: row.deactivated_at,
+        deactivation_duration_days: row.deactivation_duration_days,
+        auto_reactivate_at: row.auto_reactivate_at,
+        days_until_reactivation: row.days_until_reactivation,
         last_login: row.last_login,
         login_count: parseInt(row.login_count) || 0
       }))
@@ -847,7 +865,7 @@ router.get('/user-activity-profile/:userId', verifyToken, async (req, res) => {
         u.first_name,
         u.last_name,
         u.created_at,
-        u.active_status,
+        u.is_active,
         u.bio,
         u.profile_picture_url
       FROM users u

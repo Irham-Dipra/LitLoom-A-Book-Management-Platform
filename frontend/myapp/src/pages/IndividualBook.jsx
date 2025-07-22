@@ -130,9 +130,13 @@ import React, { useEffect, useState, useRef } from 'react';
       try {
         const currentDateTime = new Date().toISOString();
 
+        const token = localStorage.getItem('token');
         const res = await fetch('http://localhost:3000/reviews', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             user_id: userId,
             book_id: parseInt(id),
