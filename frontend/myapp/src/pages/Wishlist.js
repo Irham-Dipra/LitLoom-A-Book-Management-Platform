@@ -237,9 +237,14 @@ const Wishlist = () => {
                       </div>
                     )}
                     
-                    {item.genre && (
+                    {Array.isArray(item.genres) && item.genres.length > 0 && (
                       <div className="wishlist-book-genre">
-                        {item.genre}
+                        {item.genres.map((genre, i) => (
+                          <span key={i} className="genre-tag">
+                            {genre}
+                            {i < item.genres.length - 1 && ', '}
+                          </span>
+                        ))}
                       </div>
                     )}
                     

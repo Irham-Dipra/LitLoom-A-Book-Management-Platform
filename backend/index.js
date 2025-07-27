@@ -68,7 +68,13 @@ app.get('/books/:id', async (req, res) => {
         b.created_at, b.added_by, 
         a.id as "author_id", a.name as "author_name", a.bio as "author_bio",
         l.name as "language_name", l.iso_code as "language_code",
-        ph.name as "publisher_name"
+        ph.name as "publisher_name",
+        (
+          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+          FROM genres g
+          JOIN book_genres bg ON g.id = bg.genre_id
+          WHERE bg.book_id = b.id
+        ) as genres
     `;
 
     // If user is authenticated, include their rating and shelf
