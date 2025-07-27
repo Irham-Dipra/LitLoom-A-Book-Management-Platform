@@ -37,7 +37,14 @@ router.get('/', async (req, res) => {
           b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
           b.language_id, b.publication_house_id, b.average_rating,
           b.created_at, b.added_by, a.name as "author_name",
-          l.name as "language_name", ph.name as "publisher_name"
+          l.name as "language_name", ph.name as "publisher_name",
+          (
+          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+          FROM genres g
+          JOIN book_genres bg ON g.id = bg.genre_id
+          WHERE bg.book_id = b.id
+        ) as genres
+
         FROM books b
           JOIN book_authors ba ON b.id = ba.book_id
           JOIN authors a ON ba.author_id = a.id
@@ -57,10 +64,16 @@ router.get('/', async (req, res) => {
         queryParams.push(...languages);
       }
 
-      // Genre filter - REMOVED: genre_id doesn't exist, would need to join book_genres table
-      // TODO: Implement genre filtering with proper many-to-many relationship
+      // Genre filter - using proper many-to-many relationship
       if (genre) {
-        // Skip genre filtering for now since it requires book_genres table join
+        const genres = genre.split(',').map(g => g.trim());
+        const genrePlaceholders = genres.map(() => `$${paramIndex++}`).join(',');
+        bookQuery += ` AND EXISTS (
+          SELECT 1 FROM book_genres bg 
+          WHERE bg.book_id = b.id 
+          AND bg.genre_id IN (${genrePlaceholders})
+        )`;
+        queryParams.push(...genres);
       }
 
       // Author filter
@@ -143,7 +156,13 @@ router.get('/', async (req, res) => {
         SELECT
           b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
           b.language_id, b.publication_house_id, b.average_rating,
-          b.created_at, b.added_by, a.name as "author_name"
+          b.created_at, b.added_by, a.name as "author_name",
+          (
+            SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+            FROM genres g
+            JOIN book_genres bg ON g.id = bg.genre_id
+            WHERE bg.book_id = b.id
+          ) as genres
         FROM books b
           JOIN book_authors ba ON b.id = ba.book_id
           JOIN authors a ON ba.author_id = a.id

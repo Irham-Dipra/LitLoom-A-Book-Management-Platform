@@ -23,6 +23,7 @@ const BookCard = ({
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist || shelf === 'want-to-read');
   const [currentUserRating, setCurrentUserRating] = useState(userRating);
+  const [currentAverageRating, setCurrentAverageRating] = useState(averageRating);
   const [isRating, setIsRating] = useState(false);
   const [currentReadStatus, setCurrentReadStatus] = useState(isRead);
   const [isMarkingAsRead, setIsMarkingAsRead] = useState(false);
@@ -119,7 +120,14 @@ const BookCard = ({
         throw new Error(errorData.message || 'Failed to update rating');
       }
 
+      const data = await response.json();
       setCurrentUserRating(rating);
+      
+      // Update average rating if provided by backend
+      if (data.newAverageRating) {
+        setCurrentAverageRating(data.newAverageRating);
+      }
+      
       console.log('✅ Rating updated successfully!');
     } catch (error) {
       console.error('Failed to update rating:', error);
@@ -162,7 +170,14 @@ const BookCard = ({
         throw new Error(errorData.message || 'Failed to update rating');
       }
 
+      const data = await rateResponse.json();
       setCurrentUserRating(rating);
+      
+      // Update average rating if provided by backend
+      if (data.newAverageRating) {
+        setCurrentAverageRating(data.newAverageRating);
+      }
+      
       console.log('✅ Book added to library and rated successfully!');
       setCurrentShelf('want-to-read'); // Keep shelf in sync
     } catch (error) {
@@ -291,7 +306,7 @@ const BookCard = ({
       <div className="book-details">
         <div className="rating-row">
           <span className="avg-rating">
-            <FaStar className="star-icon yellow" /> {averageRating}
+            <FaStar className="star-icon yellow" /> {currentAverageRating}
           </span>
           <div onClick={(e) => e.stopPropagation()}>
             <RatingComponent
