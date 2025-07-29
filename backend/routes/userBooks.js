@@ -538,8 +538,8 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
     );
     const internalRatingsCount = parseInt(internalRatingsResult.rows[0].count);
 
-    // ✅ YOUR REQUIREMENT: Assume 500 external ratings + internal ratings
-    const EXTERNAL_RATINGS_COUNT = 1;
+    // ✅ Simulate 500 external ratings consistently
+    const EXTERNAL_RATINGS_COUNT = 500;
     const currentTotalRatings = EXTERNAL_RATINGS_COUNT + internalRatingsCount;
     
     // Calculate current total rating points
@@ -601,7 +601,7 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
       message: existingRating.rows.length > 0 ? 'Rating updated successfully' : 'Rating saved successfully',
       rating: rating,
       newAverageRating: newAverageRating,
-      totalRatings: newTotalRatings, // Include this for debugging
+      totalRatings: newTotalRatings,
       previousRating: existingRating.rows.length > 0 ? existingRating.rows[0].value : null
     });
 

@@ -63,6 +63,8 @@ import React, { useEffect, useState, useRef } from 'react';
           setBook(data);
           setUserRating(data.user_rating || 0);
           setCurrentShelf(data.shelf);
+          // ✅ Set review rating to existing user rating
+          setReviewRating(data.user_rating || 0);
         } catch (err) {
           setError(err.message);
         } finally {
@@ -154,7 +156,7 @@ import React, { useEffect, useState, useRef } from 'react';
         setReviewMessage('✅ Review submitted successfully!');
         setReviewTitle('');
         setReviewBody('');
-        setReviewRating(0);
+        // ✅ Don't reset review rating - keep the existing rating
 
         // Refresh reviews after successful submission
         const refreshRes = await fetch(`http://localhost:3000/reviews/book/${id}`);
@@ -184,22 +186,28 @@ import React, { useEffect, useState, useRef } from 'react';
 
         // First add book to library if not already added
         if (!currentShelf) {
-          const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              bookId: id
-            })
-          });
-          // It's okay if this fails (book might already be in library)
+          try {
+            await fetch('http://localhost:3000/myBooks/books', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                bookId: id,
+                shelf: 'want-to-read'
+              })
+            });
+            setCurrentShelf('want-to-read');
+          } catch (error) {
+            // It's okay if this fails (book might already be in library)
+            console.log('Book may already be in library');
+          }
         }
 
-        // Then rate the book
-        const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-          method: 'PUT',
+        // ✅ Use the correct rating endpoint
+        const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
@@ -210,14 +218,30 @@ import React, { useEffect, useState, useRef } from 'react';
         });
 
         if (!rateResponse.ok) {
-          throw new Error('Failed to update rating');
+          const errorData = await rateResponse.json();
+          throw new Error(errorData.message || 'Failed to update rating');
         }
 
+        const rateData = await rateResponse.json();
+        
+        // ✅ Update both user rating and book's average rating
         setUserRating(rating);
+        // ✅ Also update the review rating to sync with the main rating
+        setReviewRating(rating);
+        
+        // Update the book's average rating in the UI
+        if (rateData.newAverageRating) {
+          setBook(prevBook => ({
+            ...prevBook,
+            average_rating: rateData.newAverageRating
+          }));
+        }
+
+        console.log('✅ Rating updated successfully:', rateData);
 
       } catch (error) {
         console.error('Failed to rate book:', error);
-        alert('Failed to rate book. Please try again.');
+        alert(`Failed to rate book: ${error.message}`);
       } finally {
         setIsRating(false);
       }
@@ -368,6 +392,15 @@ import React, { useEffect, useState, useRef } from 'react';
           behavior: 'smooth'
         });
       }
+    };
+
+    // ✅ Add handler for review rating changes
+    const handleReviewRatingChange = async (rating) => {
+      // Update the review rating state
+      setReviewRating(rating);
+      
+      // Also update the main user rating (call the main rating handler)
+      await handleRatingChange(rating);
     };
 
     return (
@@ -669,16 +702,27 @@ import React, { useEffect, useState, useRef } from 'react';
                   />
                 </div>
                 <div className="form-field">
-                  <label className="rating-label">Rating (Required)</label>
+                  <label className="rating-label">
+                    Rating (Required) 
+                    {userRating > 0 && (
+                      <span className="existing-rating-note">
+                        - Current rating: {userRating} star{userRating === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </label>
                   <div className="rating-input-section">
                     <RatingComponent
                       currentRating={reviewRating}
-                      onRatingChange={setReviewRating}
+                      onRatingChange={handleReviewRatingChange}
                       isInteractive={true}
                       size="medium"
                     />
                     <span className="rating-text">
-                      {reviewRating === 0 ? 'Please select a rating' : `${reviewRating} star${reviewRating === 1 ? '' : 's'}`}
+                      {reviewRating === 0 ? (
+                        <span className="rating-required">Please select a rating to write a review</span>
+                      ) : (
+                        `${reviewRating} star${reviewRating === 1 ? '' : 's'} selected`
+                      )}
                     </span>
                   </div>
                 </div>
@@ -692,8 +736,12 @@ import React, { useEffect, useState, useRef } from 'react';
                     rows="6"
                   />
                 </div>
-                <button type="submit" className="submit-btn-clean">
-                  Post Review
+                <button 
+                  type="submit" 
+                  className={`submit-btn-clean ${reviewRating === 0 ? 'disabled' : ''}`}
+                  disabled={reviewRating === 0}
+                >
+                  {reviewRating === 0 ? 'Rate the book to post review' : 'Post Review'}
                 </button>
               </form>
 
