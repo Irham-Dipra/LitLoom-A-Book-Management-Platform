@@ -285,7 +285,7 @@ const ModeratorBooks = () => {
         <form onSubmit={handleSearch} className="search-form">
           <input
             type="text"
-            placeholder="Search books by title, description, or author..."
+            placeholder="Search books by title or author..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"

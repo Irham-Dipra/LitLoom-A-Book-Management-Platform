@@ -89,7 +89,6 @@ router.get('/books', verifyModerator, async (req, res) => {
     if (q && q.trim()) {
       const searchCondition = ` AND (
         LOWER(b.title) LIKE $${params.length + 1} OR 
-        LOWER(b.description) LIKE $${params.length + 1} OR
         LOWER(a.name) LIKE $${params.length + 1}
       )`;
       query += searchCondition;

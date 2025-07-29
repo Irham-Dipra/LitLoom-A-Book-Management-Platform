@@ -18,10 +18,10 @@ const verifyModeratorToken = async (req, res, next) => {
     const userResult = await pool.query(`
       SELECT 
         u.id, 
-        u.username, 
-        u.role,
-        EXISTS(SELECT 1 FROM moderator_accounts m WHERE m.user_id = u.id) AS is_moderator
+        u.username,
+        m.user_id as moderator_id
       FROM users u 
+      LEFT JOIN moderator_accounts m ON u.id = m.user_id
       WHERE u.id = $1
     `, [decoded.id]);
 
@@ -32,12 +32,12 @@ const verifyModeratorToken = async (req, res, next) => {
     const user = userResult.rows[0];
     console.log('User attempting moderator action:', user); // Debug log
     
-    // Check if user is moderator via moderator_accounts table OR role column
-    if (!user.is_moderator && user.role !== 'moderator' && user.role !== 'admin') {
+    // Check if user is moderator via moderator_accounts table
+    if (!user.moderator_id) {
       return res.status(403).json({ success: false, message: 'Access denied. Moderator privileges required.' });
     }
 
-    req.user = user;
+    req.user = { id: user.id, username: user.username };
     next();
   } catch (error) {
     console.error('Token verification error:', error);
@@ -82,7 +82,7 @@ router.post('/deactivate-user', verifyModeratorToken, async (req, res) => {
 
     // Check if user exists and is currently active
     const userCheck = await client.query(
-      'SELECT id, username, is_active, role FROM users WHERE id = $1',
+      'SELECT id, username, is_active FROM users WHERE id = $1',
       [userId]
     );
 
@@ -96,12 +96,17 @@ router.post('/deactivate-user', verifyModeratorToken, async (req, res) => {
 
     const targetUser = userCheck.rows[0];
 
-    // Prevent deactivating other moderators/admins
-    if (targetUser.role === 'moderator' || targetUser.role === 'admin') {
+    // Check if target user is a moderator (prevent deactivating other moderators)
+    const isModerator = await client.query(
+      'SELECT user_id FROM moderator_accounts WHERE user_id = $1',
+      [userId]
+    );
+
+    if (isModerator.rows.length > 0) {
       await client.query('ROLLBACK');
       return res.status(403).json({ 
         success: false, 
-        message: 'Cannot deactivate moderator or admin users' 
+        message: 'Cannot deactivate moderator users' 
       });
     }
 
