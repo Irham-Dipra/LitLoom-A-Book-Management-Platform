@@ -27,13 +27,23 @@ router.get('/genre-ratings', verifyToken, async (req, res) => {
     let query = `
       SELECT 
         g.name,
-        ROUND(AVG(COALESCE(r.value, b.average_rating)), 2) as avgRating,
+        (
+          3 * SUM(COALESCE(b.readers_count, 0)) +
+          2 * AVG(
+                CASE 
+                  WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0
+                  ELSE b.average_rating
+                END
+              ) +
+          COUNT(DISTINCT b.id)
+        ) AS avgRating,
         COUNT(DISTINCT b.id) as totalBooks,
         COUNT(r.value) as totalRatings,
         COUNT(DISTINCT rev.id) as reviewCount,
         COUNT(DISTINCT c.id) as commentCount,
-        COALESCE(SUM(rev.upvotes), 0) as upvotes,
-        COALESCE(SUM(rev.downvotes), 0) as downvotes
+        SUM(COALESCE(rev.upvotes, 0)) as upvotes,
+        SUM(COALESCE(rev.downvotes, 0)) as downvotes,
+        SUM(COALESCE(b.readers_count, 0)) as readersCount
       FROM genres g
       LEFT JOIN book_genres bg ON g.id = bg.genre_id
       LEFT JOIN books b ON bg.book_id = b.id
@@ -72,7 +82,7 @@ router.get('/genre-ratings', verifyToken, async (req, res) => {
     }
     
     if (minRating > 0) {
-      havingConditions.push(`AVG(COALESCE(r.value, b.average_rating)) >= $${++paramCount}`);
+      havingConditions.push(`(3 * SUM(COALESCE(b.readers_count, 0)) + 2 * AVG(CASE WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0 ELSE b.average_rating END) + COUNT(DISTINCT b.id)) >= $${++paramCount}`);
       params.push(parseFloat(minRating));
     }
     
@@ -83,10 +93,10 @@ router.get('/genre-ratings', verifyToken, async (req, res) => {
     // Add ordering based on display type
     switch (displayType) {
       case 'top-rated':
-        query += ` ORDER BY avgRating DESC, totalBooks DESC`;
+        query += ` ORDER BY avgRating DESC`;
         break;
       case 'lowest-rated':
-        query += ` ORDER BY avgRating ASC, totalBooks DESC`;
+        query += ` ORDER BY avgRating ASC`;
         break;
       case 'most-books':
         query += ` ORDER BY totalBooks DESC, avgRating DESC`;
@@ -95,7 +105,7 @@ router.get('/genre-ratings', verifyToken, async (req, res) => {
         query += ` ORDER BY totalBooks ASC, avgRating DESC`;
         break;
       case 'most-engaging':
-        query += ` ORDER BY (COUNT(DISTINCT rev.id) * 5 + COUNT(DISTINCT c.id) * 3 + (COALESCE(SUM(rev.upvotes), 0) + COALESCE(SUM(rev.downvotes), 0)) * 1) DESC, avgRating DESC`;
+        query += ` ORDER BY (COUNT(DISTINCT rev.id) * 5 + COUNT(DISTINCT c.id) * 3 + (SUM(COALESCE(rev.upvotes, 0)) + SUM(COALESCE(rev.downvotes, 0))) * 1) DESC, avgRating DESC`;
         break;
       default:
         query += ` ORDER BY avgRating DESC`;
@@ -119,7 +129,8 @@ router.get('/genre-ratings', verifyToken, async (req, res) => {
         reviewCount: parseInt(row.reviewcount) || 0,
         commentCount: parseInt(row.commentcount) || 0,
         upvotes: parseInt(row.upvotes) || 0,
-        downvotes: parseInt(row.downvotes) || 0
+        downvotes: parseInt(row.downvotes) || 0,
+        readersCount: parseInt(row.readerscount) || 0
       }))
     });
   } catch (error) {
@@ -138,13 +149,23 @@ router.get('/author-ratings', verifyToken, async (req, res) => {
       SELECT 
         a.id,
         a.name,
-        ROUND(AVG(COALESCE(r.value, b.average_rating)), 2) as avgRating,
+        (
+          3 * SUM(COALESCE(b.readers_count, 0)) +
+          2 * AVG(
+                CASE 
+                  WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0
+                  ELSE b.average_rating
+                END
+              ) +
+          COUNT(DISTINCT b.id)
+        ) AS avgRating,
         COUNT(DISTINCT b.id) as totalBooks,
         COUNT(r.value) as totalRatings,
         COUNT(DISTINCT rev.id) as reviewCount,
         COUNT(DISTINCT c.id) as commentCount,
-        COALESCE(SUM(rev.upvotes), 0) as upvotes,
-        COALESCE(SUM(rev.downvotes), 0) as downvotes
+        SUM(COALESCE(rev.upvotes, 0)) as upvotes,
+        SUM(COALESCE(rev.downvotes, 0)) as downvotes,
+        SUM(COALESCE(b.readers_count, 0)) as readersCount
       FROM authors a
       LEFT JOIN book_authors ba ON a.id = ba.author_id
       LEFT JOIN books b ON ba.book_id = b.id
@@ -187,7 +208,7 @@ router.get('/author-ratings', verifyToken, async (req, res) => {
     }
     
     if (minRating > 0) {
-      havingConditions.push(`AVG(COALESCE(r.value, b.average_rating)) >= $${++paramCount}`);
+      havingConditions.push(`(3 * SUM(COALESCE(b.readers_count, 0)) + 2 * AVG(CASE WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0 ELSE b.average_rating END) + COUNT(DISTINCT b.id)) >= $${++paramCount}`);
       params.push(parseFloat(minRating));
     }
     
@@ -198,10 +219,10 @@ router.get('/author-ratings', verifyToken, async (req, res) => {
     // Add ordering based on display type
     switch (displayType) {
       case 'top-rated':
-        query += ` ORDER BY avgRating DESC, totalBooks DESC`;
+        query += ` ORDER BY avgRating DESC`;
         break;
       case 'lowest-rated':
-        query += ` ORDER BY avgRating ASC, totalBooks DESC`;
+        query += ` ORDER BY avgRating ASC`;
         break;
       case 'most-books':
         query += ` ORDER BY totalBooks DESC, avgRating DESC`;
@@ -232,7 +253,8 @@ router.get('/author-ratings', verifyToken, async (req, res) => {
         reviewCount: parseInt(row.reviewcount) || 0,
         commentCount: parseInt(row.commentcount) || 0,
         upvotes: parseInt(row.upvotes) || 0,
-        downvotes: parseInt(row.downvotes) || 0
+        downvotes: parseInt(row.downvotes) || 0,
+        readersCount: parseInt(row.readerscount) || 0
       }))
     });
   } catch (error) {
@@ -251,13 +273,23 @@ router.get('/publisher-ratings', verifyToken, async (req, res) => {
       SELECT 
         ph.id,
         ph.name,
-        ROUND(AVG(COALESCE(r.value, b.average_rating)), 2) as avgRating,
+        (
+          3 * SUM(COALESCE(b.readers_count, 0)) +
+          2 * AVG(
+                CASE 
+                  WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0
+                  ELSE b.average_rating
+                END
+              ) +
+          COUNT(DISTINCT b.id)
+        ) AS avgRating,
         COUNT(DISTINCT b.id) as totalBooks,
         COUNT(r.value) as totalRatings,
         COUNT(DISTINCT rev.id) as reviewCount,
         COUNT(DISTINCT c.id) as commentCount,
-        COALESCE(SUM(rev.upvotes), 0) as upvotes,
-        COALESCE(SUM(rev.downvotes), 0) as downvotes
+        SUM(COALESCE(rev.upvotes, 0)) as upvotes,
+        SUM(COALESCE(rev.downvotes, 0)) as downvotes,
+        SUM(COALESCE(b.readers_count, 0)) as readersCount
       FROM publication_houses ph
       LEFT JOIN books b ON ph.id = b.publication_house_id
       LEFT JOIN ratings r ON b.id = r.book_id
@@ -299,7 +331,7 @@ router.get('/publisher-ratings', verifyToken, async (req, res) => {
     }
     
     if (minRating > 0) {
-      havingConditions.push(`AVG(COALESCE(r.value, b.average_rating)) >= $${++paramCount}`);
+      havingConditions.push(`(3 * SUM(COALESCE(b.readers_count, 0)) + 2 * AVG(CASE WHEN r.value IS NOT NULL THEN (2 * b.average_rating + r.value) / 3.0 ELSE b.average_rating END) + COUNT(DISTINCT b.id)) >= $${++paramCount}`);
       params.push(parseFloat(minRating));
     }
     
@@ -310,10 +342,10 @@ router.get('/publisher-ratings', verifyToken, async (req, res) => {
     // Add ordering based on display type
     switch (displayType) {
       case 'top-rated':
-        query += ` ORDER BY avgRating DESC, totalBooks DESC`;
+        query += ` ORDER BY avgRating DESC`;
         break;
       case 'lowest-rated':
-        query += ` ORDER BY avgRating ASC, totalBooks DESC`;
+        query += ` ORDER BY avgRating ASC`;
         break;
       case 'most-books':
         query += ` ORDER BY totalBooks DESC, avgRating DESC`;
@@ -344,7 +376,8 @@ router.get('/publisher-ratings', verifyToken, async (req, res) => {
         reviewCount: parseInt(row.reviewcount) || 0,
         commentCount: parseInt(row.commentcount) || 0,
         upvotes: parseInt(row.upvotes) || 0,
-        downvotes: parseInt(row.downvotes) || 0
+        downvotes: parseInt(row.downvotes) || 0,
+        readersCount: parseInt(row.readerscount) || 0
       }))
     });
   } catch (error) {
