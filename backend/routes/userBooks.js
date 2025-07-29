@@ -250,6 +250,28 @@ router.put('/books/:bookId', checkUserActivation, async (req, res) => {
     // Manual validation since express-validator has issues with null values
     const { shelf, rating, dateRead, notes } = req.body;
     
+    // Handle "untracked" case - delete the book from library
+    if (shelf === 'untracked') {
+      const userId = req.user.id;
+      const { bookId } = req.params;
+
+      const deleteQuery = 'DELETE FROM user_books WHERE user_id = $1 AND book_id = $2';
+      const result = await client.query(deleteQuery, [userId, bookId]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Book not found in library' 
+        });
+      }
+
+      return res.json({ 
+        success: true,
+        message: 'Book removed from library successfully',
+        action: 'deleted'
+      });
+    }
+    
     if (shelf !== undefined && shelf !== null && !['want-to-read', 'currently-reading', 'read'].includes(shelf)) {
       await client.query('ROLLBACK');
       return res.status(400).json({
@@ -298,7 +320,8 @@ router.put('/books/:bookId', checkUserActivation, async (req, res) => {
 
       return res.json({ 
         success: true,
-        message: 'Book removed from library (unmarked as read)' 
+        message: 'Book removed from library (unmarked as read)',
+        action: 'deleted'
       });
     }
 
@@ -396,19 +419,13 @@ router.put('/books/:bookId', checkUserActivation, async (req, res) => {
 
     res.json({ 
       success: true,
-      message: 'Book updated successfully' 
+      message: 'Book updated successfully',
+      action: 'updated'
     });
 
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error updating book:', error);
-    console.error('Stack trace:', error.stack);
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      detail: error.detail,
-      hint: error.hint
-    });
     res.status(500).json({ 
       success: false,
       message: 'Server error while updating book',

@@ -127,6 +127,35 @@ function MyBooks() {
   const handleShelfChange = async (bookId, newShelf) => {
     try {
       const token = localStorage.getItem('token');
+      
+      if (newShelf === 'untracked') {
+        // Delete the book from user's library
+        const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove book from library');
+        }
+
+        // Immediately remove the book from the local state
+        setBooks(books.filter(book => book.id !== bookId));
+        
+        // Close the edit mode
+        setEditingShelf(null);
+
+        // Refresh shelf counts
+        fetchShelves();
+
+        console.log('✅ Book removed from library successfully!');
+        return;
+      }
+
+      // Handle regular shelf updates
       const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
         method: 'PUT',
         headers: {
@@ -392,6 +421,7 @@ function MyBooks() {
                                 <option value="want-to-read">Want to Read</option>
                                 <option value="currently-reading">Currently Reading</option>
                                 <option value="read">Read</option>
+                                <option value="untracked">Untracked (Remove from library)</option>
                               </select>
                               <button 
                                 className="cancel-edit-btn"
