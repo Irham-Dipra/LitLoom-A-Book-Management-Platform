@@ -56,17 +56,26 @@ import React, { useEffect, useState, useRef } from 'react';
             headers['Authorization'] = `Bearer ${token}`;
           }
 
+          console.log('Fetching book with ID:', id);
           const res = await fetch(`http://localhost:3000/books/${id}`, { headers });
-          if (!res.ok) throw new Error('Failed to fetch book details');
+          
+          if (!res.ok) {
+            const errorData = await res.json();
+            console.error('API Error:', errorData);
+            throw new Error(errorData.message || `HTTP ${res.status}: Failed to fetch book details`);
+          }
+          
           const data = await res.json();
+          console.log('Book data received:', data);
 
           setBook(data);
           setUserRating(data.user_rating || 0);
-          // ✅ Set shelf to 'untracked' if no shelf value or null
+          // Set shelf to 'untracked' if no shelf value or null
           setCurrentShelf(data.shelf || 'untracked');
-          // ✅ Set review rating to existing user rating
+          // Set review rating to existing user rating
           setReviewRating(data.user_rating || 0);
         } catch (err) {
+          console.error('Fetch error:', err);
           setError(err.message);
         } finally {
           setLoading(false);
@@ -531,15 +540,30 @@ import React, { useEffect, useState, useRef } from 'react';
                   <span className="detail-val">{formatDate(book.publication_date)}</span>
                 </div>
                 <div className="detail-row">
-  <span className="detail-key">Genres</span>
-  <div className="genre-tags-container">
-    {Array.isArray(book.genres) && book.genres.length > 0
-      ? book.genres.map((g, i) => (
-          <span key={i} className="genre-tag">{g}</span>
-        ))
-      : <span className="genre-tag">Unknown</span>}
-  </div>
-</div>
+                  <span className="detail-key">Genres</span>
+                  <div className="genre-tags-container">
+                    {Array.isArray(book.genre_details) && book.genre_details.length > 0
+                      ? book.genre_details.map((genre, i) => (
+                          <span 
+                            key={i} 
+                            className="genre-tag clickable"
+                            onClick={() => navigate(`/genre/${genre.id}`)}
+                          >
+                            {genre.name}
+                          </span>
+                        ))
+                      : Array.isArray(book.genres) && book.genres.length > 0
+                      ? book.genres.map((genreName, i) => (
+                          <span 
+                            key={i} 
+                            className="genre-tag"
+                          >
+                            {genreName}
+                          </span>
+                        ))
+                      : <span className="genre-tag">Unknown</span>}
+                  </div>
+                </div>
 
                 <div className="detail-row">
                   <span className="detail-key">Language</span>

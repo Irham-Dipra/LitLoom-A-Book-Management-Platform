@@ -25,6 +25,7 @@ const addBookRoutes = require('./routes/addBook');
 const reviewRoutes = require('./routes/reviews');
 const userBooksRoutes = require('./routes/userBooks');
 const authorRoutes = require('./routes/authors');
+const genreRoutes = require('./routes/genres');
 const analyticsRoutes = require('./routes/analytics');
 const moderatorBooksRoutes = require('./routes/moderatorBooks');
 const userManagementRoutes = require('./routes/userManagement');
@@ -42,6 +43,7 @@ app.use('/addBook', addBookRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/myBooks', userBooksRoutes);
 app.use('/authors', authorRoutes);
+app.use('/genres', genreRoutes);
 app.use('/analytics', analyticsRoutes);
 app.use('/moderator', moderatorBooksRoutes);
 app.use('/moderator', userManagementRoutes);
@@ -82,7 +84,7 @@ app.get('/books/:id', async (req, res) => {
         ) as genres
     `;
 
-    // ✅ If user is authenticated, include their rating and shelf (can be null)
+    // If user is authenticated, include their rating and shelf (can be null)
     if (userId) {
       query += `, ub.shelf, rt.value as user_rating`;
     } else {
@@ -105,13 +107,29 @@ app.get('/books/:id', async (req, res) => {
     query += ` WHERE b.id = $1`;
 
     const queryParams = userId ? [id, userId] : [id];
+    
     const book = await pool.query(query, queryParams);
     
     if (book.rows.length === 0) {
-      return res.status(404).json({ message: 'Book not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Book not found' 
+      });
     }
 
     const bookData = book.rows[0];
+
+    // Get genre details with IDs for clickable genres
+    const genreDetailsQuery = `
+      SELECT g.id, g.name
+      FROM genres g
+      JOIN book_genres bg ON g.id = bg.genre_id
+      WHERE bg.book_id = $1
+      ORDER BY g.name
+    `;
+    
+    const genreDetails = await pool.query(genreDetailsQuery, [id]);
+    bookData.genre_details = genreDetails.rows;
 
     // Get other books by the same author
     const otherBooksQuery = `
@@ -139,8 +157,13 @@ app.get('/books/:id', async (req, res) => {
 
     res.json(bookData);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error in book details endpoint:', err.message);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching book details',
+      error: err.message 
+    });
   }
 });
 
