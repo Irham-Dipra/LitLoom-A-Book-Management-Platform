@@ -116,7 +116,7 @@ const ModeratorBooks = () => {
   const fetchFilterOptions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/filter-options', {
+      const response = await fetch('http://localhost:3000/moderator/filter-options', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -125,7 +125,15 @@ const ModeratorBooks = () => {
 
       const data = await response.json();
       if (data.success) {
-        setFilterOptions(data);
+        setFilterOptions({
+          languages: data.languages || [],
+          genres: data.genres || [],
+          authors: data.authors || [],
+          publishers: data.publishers || [],
+          countries: data.countries || []
+        });
+      } else {
+        console.error('Failed to fetch filter options:', data.message);
       }
     } catch (error) {
       console.error('Error fetching filter options:', error);

@@ -424,4 +424,30 @@ router.get('/deletion-history', verifyModerator, async (req, res) => {
   }
 });
 
+// Get filter options for moderator interface
+router.get('/filter-options', verifyModerator, async (req, res) => {
+  try {
+    const [languagesResult, genresResult, authorsResult, publishersResult, countriesResult] = await Promise.all([
+      pool.query('SELECT id, name FROM languages ORDER BY name'),
+      pool.query('SELECT id, name FROM genres ORDER BY name'),
+      pool.query('SELECT id, name FROM authors ORDER BY name LIMIT 1000'), // Limit for performance
+      pool.query('SELECT id, name FROM publication_houses ORDER BY name'),
+      pool.query('SELECT DISTINCT original_country as name FROM books WHERE original_country IS NOT NULL ORDER BY original_country')
+    ]);
+
+    res.json({
+      success: true,
+      languages: languagesResult.rows,
+      genres: genresResult.rows,
+      authors: authorsResult.rows,
+      publishers: publishersResult.rows,
+      countries: countriesResult.rows.map(row => ({ name: row.name, id: row.name }))
+    });
+
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching filter options' });
+  }
+});
+
 module.exports = router;
