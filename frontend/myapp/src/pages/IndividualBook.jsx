@@ -62,7 +62,8 @@ import React, { useEffect, useState, useRef } from 'react';
 
           setBook(data);
           setUserRating(data.user_rating || 0);
-          setCurrentShelf(data.shelf);
+          // ✅ Set shelf to 'untracked' if no shelf value or null
+          setCurrentShelf(data.shelf || 'untracked');
           // ✅ Set review rating to existing user rating
           setReviewRating(data.user_rating || 0);
         } catch (err) {
@@ -184,8 +185,8 @@ import React, { useEffect, useState, useRef } from 'react';
       try {
         const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-        // First add book to library if not already added
-        if (!currentShelf) {
+        // ✅ First add book to library if untracked
+        if (currentShelf === 'untracked') {
           try {
             await fetch('http://localhost:3000/myBooks/books', {
               method: 'POST',
@@ -259,42 +260,60 @@ import React, { useEffect, useState, useRef } from 'react';
       try {
         const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-        if (!currentShelf) {
-          // Add book to library with specified shelf
-          const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              bookId: id,
-              shelf: shelf
-            })
-          });
+        if (shelf === 'untracked') {
+          // ✅ Remove book from library (untrack it)
+          if (currentShelf !== 'untracked') {
+            const deleteResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              }
+            });
 
-          if (!addResponse.ok) {
-            throw new Error('Failed to add book to library');
+            if (!deleteResponse.ok) {
+              throw new Error('Failed to remove book from library');
+            }
           }
+          setCurrentShelf('untracked');
         } else {
-          // Update existing book shelf
-          const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              shelf: shelf
-            })
-          });
+          // ✅ Adding book to a specific shelf
+          if (currentShelf === 'untracked') {
+            // Add book to library with specified shelf
+            const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                bookId: id,
+                shelf: shelf
+              })
+            });
 
-          if (!updateResponse.ok) {
-            throw new Error('Failed to update book shelf');
+            if (!addResponse.ok) {
+              throw new Error('Failed to add book to library');
+            }
+          } else {
+            // Update existing book shelf
+            const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                shelf: shelf
+              })
+            });
+
+            if (!updateResponse.ok) {
+              throw new Error('Failed to update book shelf');
+            }
           }
+          setCurrentShelf(shelf);
         }
-
-        setCurrentShelf(shelf);
 
       } catch (error) {
         console.error('Failed to update shelf:', error);
@@ -314,7 +333,8 @@ import React, { useEffect, useState, useRef } from 'react';
         case 'want-to-read': return 'Want to Read';
         case 'currently-reading': return 'Currently Reading';
         case 'read': return 'Read';
-        default: return 'Want to Read';
+        case 'untracked': return 'Untracked';
+        default: return 'Untracked';
       }
     };
 
@@ -322,7 +342,9 @@ import React, { useEffect, useState, useRef } from 'react';
       switch (shelf) {
         case 'read': return 'shelf-read';
         case 'currently-reading': return 'shelf-reading';
-        default: return 'shelf-want';
+        case 'want-to-read': return 'shelf-want';
+        case 'untracked': return 'shelf-untracked';
+        default: return 'shelf-untracked';
       }
     };
 
@@ -451,7 +473,7 @@ import React, { useEffect, useState, useRef } from 'react';
                         onClick={() => setShowShelfDropdown(!showShelfDropdown)}
                         disabled={isUpdatingShelf}
                       >
-                        {isUpdatingShelf ? 'Updating...' : (currentShelf ? getShelfDisplayName(currentShelf) : 'Want to Read')}
+                        {isUpdatingShelf ? 'Updating...' : getShelfDisplayName(currentShelf)}
                         <BiChevronDown className="dropdown-icon" />
                       </button>
 
@@ -465,6 +487,9 @@ import React, { useEffect, useState, useRef } from 'react';
                           </div>
                           <div className="shelf-option-modern" onClick={() => handleShelfChange('read')}>
                             Read
+                          </div>
+                          <div className="shelf-option-modern" onClick={() => handleShelfChange('untracked')}>
+                            Untracked
                           </div>
                         </div>
                       )}

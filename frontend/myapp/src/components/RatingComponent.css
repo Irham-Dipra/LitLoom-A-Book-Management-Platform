@@ -114,3 +114,14 @@
   background-color: #ccc;
   transform: none;
 }
+
+.shelf-untracked {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.shelf-untracked:hover {
+  background-color: #e8e8e8;
+  border-color: #bbb;
+}
