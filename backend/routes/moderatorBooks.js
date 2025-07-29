@@ -72,96 +72,6 @@ router.get('/books', verifyModerator, async (req, res) => {
     `;
 
     const params = [];
-    let paramIndex = 1;
-
-    // Text search
-    if (q && q.trim()) {
-      query += ` AND (
-        LOWER(b.title) LIKE $${paramIndex} OR 
-        LOWER(b.description) LIKE $${paramIndex} OR
-        LOWER(a.name) LIKE $${paramIndex}
-      )`;
-      params.push(`%${q.trim().toLowerCase()}%`);
-      paramIndex++;
-    }
-
-    // Language filter
-    if (language) {
-      const languages = language.split(',').map(lang => lang.trim());
-      const languagePlaceholders = languages.map(() => `$${paramIndex++}`).join(',');
-      query += ` AND b.language_id IN (${languagePlaceholders})`;
-      params.push(...languages);
-    }
-
-    // Genre filter
-    if (genre) {
-      const genres = genre.split(',').map(g => g.trim());
-      const genrePlaceholders = genres.map(() => `$${paramIndex++}`).join(',');
-      query += ` AND bg.genre_id IN (${genrePlaceholders})`;
-      params.push(...genres);
-    }
-
-    // Author filter
-    if (author) {
-      const authors = author.split(',').map(auth => auth.trim());
-      const authorPlaceholders = authors.map(() => `$${paramIndex++}`).join(',');
-      query += ` AND ba.author_id IN (${authorPlaceholders})`;
-      params.push(...authors);
-    }
-
-    // Publisher filter
-    if (publisher) {
-      const publishers = publisher.split(',').map(pub => pub.trim());
-      const publisherPlaceholders = publishers.map(() => `$${paramIndex++}`).join(',');
-      query += ` AND b.publication_house_id IN (${publisherPlaceholders})`;
-      params.push(...publishers);
-    }
-
-    // Country filter
-    if (country) {
-      const countries = country.split(',').map(c => c.trim());
-      const countryPlaceholders = countries.map(() => `$${paramIndex++}`).join(',');
-      query += ` AND b.original_country IN (${countryPlaceholders})`;
-      params.push(...countries);
-    }
-
-    // Publication date range
-    if (pubDateFrom) {
-      query += ` AND EXTRACT(YEAR FROM b.publication_date) >= $${paramIndex}`;
-      params.push(parseInt(pubDateFrom));
-      paramIndex++;
-    }
-
-    if (pubDateTo) {
-      query += ` AND EXTRACT(YEAR FROM b.publication_date) <= $${paramIndex}`;
-      params.push(parseInt(pubDateTo));
-      paramIndex++;
-    }
-
-    // Rating range
-    if (ratingFrom) {
-      query += ` AND b.average_rating >= $${paramIndex}`;
-      params.push(parseFloat(ratingFrom));
-      paramIndex++;
-    }
-
-    if (ratingTo) {
-      query += ` AND b.average_rating <= $${paramIndex}`;
-      params.push(parseFloat(ratingTo));
-      paramIndex++;
-    }
-
-    // Group by and sorting
-    query += ` 
-      GROUP BY b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
-               b.language_id, b.publication_house_id, b.average_rating, b.isbn, b.readers_count, b.page,
-               b.created_at, b.added_by, l.name, ph.name, u.username
-      ORDER BY b.${sortBy} ${sortOrder}
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    params.push(parseInt(limit), offset);
-
-    // Get total count for pagination
     let countQuery = `
       SELECT COUNT(DISTINCT b.id) as total
       FROM books b
@@ -173,16 +83,109 @@ router.get('/books', verifyModerator, async (req, res) => {
         LEFT JOIN publication_houses ph ON b.publication_house_id = ph.id
       WHERE 1=1
     `;
+    const countParams = [];
 
-    // Apply same filters to count query
-    const countParams = params.slice(0, -2); // Remove limit and offset
+    // Text search
     if (q && q.trim()) {
-      countQuery += ` AND (
-        LOWER(b.title) LIKE $1 OR 
-        LOWER(b.description) LIKE $1 OR
-        LOWER(a.name) LIKE $1
+      const searchCondition = ` AND (
+        LOWER(b.title) LIKE $${params.length + 1} OR 
+        LOWER(b.description) LIKE $${params.length + 1} OR
+        LOWER(a.name) LIKE $${params.length + 1}
       )`;
+      query += searchCondition;
+      countQuery += searchCondition;
+      params.push(`%${q.trim().toLowerCase()}%`);
+      countParams.push(`%${q.trim().toLowerCase()}%`);
     }
+
+    // Language filter
+    if (language) {
+      const languageCondition = ` AND b.language_id = $${params.length + 1}`;
+      query += languageCondition;
+      countQuery += languageCondition;
+      params.push(language);
+      countParams.push(language);
+    }
+
+    // Genre filter
+    if (genre) {
+      const genreCondition = ` AND bg.genre_id = $${params.length + 1}`;
+      query += genreCondition;
+      countQuery += genreCondition;
+      params.push(genre);
+      countParams.push(genre);
+    }
+
+    // Author filter
+    if (author) {
+      const authorCondition = ` AND ba.author_id = $${params.length + 1}`;
+      query += authorCondition;
+      countQuery += authorCondition;
+      params.push(author);
+      countParams.push(author);
+    }
+
+    // Publisher filter
+    if (publisher) {
+      const publisherCondition = ` AND b.publication_house_id = $${params.length + 1}`;
+      query += publisherCondition;
+      countQuery += publisherCondition;
+      params.push(publisher);
+      countParams.push(publisher);
+    }
+
+    // Country filter
+    if (country) {
+      const countryCondition = ` AND b.original_country = $${params.length + 1}`;
+      query += countryCondition;
+      countQuery += countryCondition;
+      params.push(country);
+      countParams.push(country);
+    }
+
+    // Publication date range
+    if (pubDateFrom) {
+      const dateFromCondition = ` AND EXTRACT(YEAR FROM b.publication_date) >= $${params.length + 1}`;
+      query += dateFromCondition;
+      countQuery += dateFromCondition;
+      params.push(parseInt(pubDateFrom));
+      countParams.push(parseInt(pubDateFrom));
+    }
+
+    if (pubDateTo) {
+      const dateToCondition = ` AND EXTRACT(YEAR FROM b.publication_date) <= $${params.length + 1}`;
+      query += dateToCondition;
+      countQuery += dateToCondition;
+      params.push(parseInt(pubDateTo));
+      countParams.push(parseInt(pubDateTo));
+    }
+
+    // Rating range
+    if (ratingFrom) {
+      const ratingFromCondition = ` AND b.average_rating >= $${params.length + 1}`;
+      query += ratingFromCondition;
+      countQuery += ratingFromCondition;
+      params.push(parseFloat(ratingFrom));
+      countParams.push(parseFloat(ratingFrom));
+    }
+
+    if (ratingTo) {
+      const ratingToCondition = ` AND b.average_rating <= $${params.length + 1}`;
+      query += ratingToCondition;
+      countQuery += ratingToCondition;
+      params.push(parseFloat(ratingTo));
+      countParams.push(parseFloat(ratingTo));
+    }
+
+    // Group by and sorting
+    query += ` 
+      GROUP BY b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
+               b.language_id, b.publication_house_id, b.average_rating, b.isbn, b.readers_count, b.page,
+               b.created_at, b.added_by, l.name, ph.name, u.username
+      ORDER BY b.${sortBy} ${sortOrder}
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    params.push(parseInt(limit), offset);
 
     const [booksResult, countResult] = await Promise.all([
       pool.query(query, params),
