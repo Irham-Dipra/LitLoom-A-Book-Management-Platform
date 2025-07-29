@@ -312,83 +312,137 @@ const BookCard = ({
     }
   };
 
-  const handleRatingChange = async (rating) => {
-    if (!isLoggedIn()) {
-      navigate('/login');
-      return;
-    }
+  // In BookCard.js - Replace the handleRatingChange and addBookToLibrary functions
 
-    // If book is not in user's library, add it first then rate
-    if (!isInUserLibrary) {
-      await addBookToLibrary(rating);
-      return;
-    }
+const handleRatingChange = async (rating) => {
+  if (!isLoggedIn()) {
+    navigate('/login');
+    return;
+  }
 
-    setIsRating(true);
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+  setIsRating(true);
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    // Always try to rate directly first
+    let rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        rating: rating
+      })
+    });
+
+    // If rating fails because book is not in library, add it first
+    if (!rateResponse.ok) {
+      const errorData = await rateResponse.json();
       
-      // Use dedicated rating endpoint
-      const response = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          rating: rating
-        })
-      });
+      // Check if error is due to book not being in library
+      if (rateResponse.status === 404 || errorData.message?.includes('not found') || errorData.message?.includes('not in library')) {
+        console.log('Book not in library, adding it first...');
+        
+        // Add book to library first
+        const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bookId: id,
+            shelf: 'want-to-read'
+          })
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error response:', errorData);
+        // If adding fails because book already exists, ignore the error and proceed to rating
+        if (!addResponse.ok) {
+          const addErrorData = await addResponse.json();
+          console.log('Add to library response:', addErrorData);
+          
+          // Only throw error if it's not a "already exists" type error
+          if (!addErrorData.message?.includes('already') && !addErrorData.message?.includes('exists')) {
+            throw new Error(addErrorData.message || 'Failed to add book to library');
+          }
+          console.log('Book already in library, proceeding to rate...');
+        }
+
+        // Now try rating again
+        rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating: rating
+          })
+        });
+
+        if (!rateResponse.ok) {
+          const rateErrorData = await rateResponse.json();
+          console.error('Rating error after adding to library:', rateErrorData);
+          throw new Error(rateErrorData.message || 'Failed to update rating');
+        }
+      } else {
+        // Different error, throw it
+        console.error('Rating error:', errorData);
         throw new Error(errorData.message || 'Failed to update rating');
       }
-
-      const data = await response.json();
-      setCurrentUserRating(rating);
-      
-      // Update average rating if provided by backend
-      if (data.newAverageRating) {
-        setCurrentAverageRating(data.newAverageRating);
-      }
-      
-      console.log('✅ Rating updated successfully!');
-      
-    } catch (error) {
-      console.error('Failed to update rating:', error);
-      alert('Failed to update rating. Please try again.');
-    } finally {
-      setIsRating(false);
     }
-  };
 
-  const addBookToLibrary = async (rating) => {
-    setIsRating(true);
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const data = await rateResponse.json();
+    setCurrentUserRating(rating);
+    
+    // Update average rating if provided by backend
+    if (data.newAverageRating) {
+      setCurrentAverageRating(data.newAverageRating);
+    }
+    
+    console.log('✅ Rating updated successfully!');
+    
+  } catch (error) {
+    console.error('Failed to update rating:', error);
+    alert('Failed to update rating. Please try again.');
+  } finally {
+    setIsRating(false);
+  }
+};
+
+  const addBookToLibrary = async (rating = null, shelf = 'want-to-read') => {
+  setIsRating(true);
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    // Add book to library
+    const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        bookId: id,
+        shelf: shelf
+      })
+    });
+
+    // Handle "already exists" errors gracefully
+    if (!addResponse.ok) {
+      const errorData = await addResponse.json();
       
-      // First add book to library with default shelf for rating
-      const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          bookId: id,
-          shelf: 'want-to-read'  // Default shelf for books added for rating
-        })
-      });
-
-      if (!addResponse.ok) {
-        const errorData = await addResponse.json();
+      if (errorData.message?.includes('already') || errorData.message?.includes('exists')) {
+        console.log('Book already in library, proceeding...');
+      } else {
         console.error('Error response:', errorData);
         throw new Error(errorData.message || 'Failed to add book to library');
       }
+    }
 
-      // Then rate the book using the dedicated rating endpoint
+    // If rating was requested, rate the book
+    if (rating) {
       const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
         method: 'POST',
         headers: {
@@ -402,27 +456,27 @@ const BookCard = ({
 
       if (!rateResponse.ok) {
         const errorData = await rateResponse.json();
-        console.error('Error response:', errorData);
+        console.error('Rating error:', errorData);
         throw new Error(errorData.message || 'Failed to update rating');
       }
 
       const data = await rateResponse.json();
       setCurrentUserRating(rating);
       
-      // Update average rating if provided by backend
       if (data.newAverageRating) {
         setCurrentAverageRating(data.newAverageRating);
       }
-      
-      console.log('✅ Book added to library and rated successfully!');
-      
-    } catch (error) {
-      console.error('Failed to add book and rate:', error);
-      alert('Failed to add book and rate. Please try again.');
-    } finally {
-      setIsRating(false);
     }
-  };
+    
+    console.log('✅ Book added to library' + (rating ? ' and rated' : '') + ' successfully!');
+    
+  } catch (error) {
+    console.error('Failed to add book' + (rating ? ' and rate' : '') + ':', error);
+    alert('Failed to add book' + (rating ? ' and rate' : '') + '. Please try again.');
+  } finally {
+    setIsRating(false);
+  }
+};
 
   const handleMarkAsRead = async (e) => {
     e.stopPropagation();
