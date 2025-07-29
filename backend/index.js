@@ -65,7 +65,7 @@ app.get('/books/:id', async (req, res) => {
       }
     }
 
-    // Base query for book details - FIXED: removed non-existent fields
+    // Base query for book details
     let query = `
       SELECT
         b.id, b.title, b.description, b.publication_date, b.cover_image, b.original_country,
@@ -82,7 +82,7 @@ app.get('/books/:id', async (req, res) => {
         ) as genres
     `;
 
-    // If user is authenticated, include their rating and shelf
+    // ✅ If user is authenticated, include their rating and shelf (can be null)
     if (userId) {
       query += `, ub.shelf, rt.value as user_rating`;
     } else {
@@ -98,13 +98,14 @@ app.get('/books/:id', async (req, res) => {
     `;
 
     if (userId) {
-      query += `LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = ${userId}`;
-      query += ` LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ${userId}`;
+      query += ` LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $2`;
+      query += ` LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $2`;
     }
 
     query += ` WHERE b.id = $1`;
 
-    const book = await pool.query(query, [id]);
+    const queryParams = userId ? [id, userId] : [id];
+    const book = await pool.query(query, queryParams);
     
     if (book.rows.length === 0) {
       return res.status(404).json({ message: 'Book not found' });
