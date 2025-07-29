@@ -1,4 +1,3 @@
-// backend/routes/userBooks.js - COMPLETE FIXED VERSION
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db');
@@ -315,14 +314,26 @@ router.put('/books/:bookId', checkUserActivation, async (req, res) => {
       updateParams.push(shelf);
     }
 
-    // Handle date_read logic
+    // FIXED: Handle date_read logic for both 'read' and 'currently-reading' shelves
     let dateReadValue = dateRead;
-    if (shelf === 'read' && dateRead === undefined) {
-      // If marking as read and no specific date provided, use current date
-      dateReadValue = new Date();
+    
+    if (shelf === 'read' || shelf === 'currently-reading') {
+      // If marking as read or currently-reading and no specific date provided, use current date
+      if (dateRead === undefined) {
+        dateReadValue = new Date();
+      }
+    } else if (shelf === 'want-to-read') {
+      // If moving back to want-to-read, clear the date_read
+      dateReadValue = null;
     }
 
-    if (dateReadValue !== undefined) {
+    // Always update date_read when shelf changes (unless explicitly provided)
+    if (shelf !== undefined) {
+      paramCount++;
+      updates.push(`date_read = $${paramCount}`);
+      updateParams.push(dateReadValue);
+    } else if (dateReadValue !== undefined) {
+      // Only update date_read if explicitly provided and shelf isn't changing
       paramCount++;
       updates.push(`date_read = $${paramCount}`);
       updateParams.push(dateReadValue);
