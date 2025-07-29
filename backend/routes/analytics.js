@@ -898,7 +898,7 @@ router.get('/user-activity-profile/:userId', verifyToken, async (req, res) => {
         u.first_name,
         u.last_name,
         u.created_at,
-        u.is_active,
+        u.is_active as active_status,
         u.bio,
         u.profile_picture_url
       FROM users u
@@ -911,7 +911,7 @@ router.get('/user-activity-profile/:userId', verifyToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    // Get detailed activity stats
+    // Get detailed activity stats including books added
     const activityQuery = `
       SELECT 
         'reviews' as activity_type,
@@ -934,8 +934,8 @@ router.get('/user-activity-profile/:userId', verifyToken, async (req, res) => {
       SELECT 
         'books_added' as activity_type,
         COUNT(*) as count,
-        MAX(date_added) as last_activity
-      FROM user_books WHERE user_id = $1
+        MAX(created_at) as last_activity
+      FROM books WHERE added_by = $1
     `;
     
     const activityResult = await pool.query(activityQuery, [userId]);
