@@ -29,8 +29,8 @@ function Navbar({ loggedIn, onSearch, showFilters = true }) {
 
         <div className="navbar-center">
           <span onClick={() => navigate('/my-books')}>My Books</span>
-          <span onClick={() => navigate('/browse')}>Browse</span>
-          <span onClick={() => navigate('/community')}>Community</span>
+          <span onClick={() => navigate('/browse')}>Community</span>
+          
         </div>
 
         <div className="navbar-right">

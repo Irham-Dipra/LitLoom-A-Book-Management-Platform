@@ -1,4 +1,3 @@
-// backend/routes/userBooks.js - FIXED VERSION with proper date_read handling
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db');
@@ -64,10 +63,12 @@ router.get('/books', verifyToken, async (req, res) => {
         ub.date_read,
         ub.review_id,
         r.body as review,
-        (SELECT g.name FROM genres g 
-         JOIN book_genres bg ON g.id = bg.genre_id 
-         WHERE bg.book_id = b.id 
-         ORDER BY g.id ASC LIMIT 1) as genre,
+        (
+          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+          FROM genres g
+          JOIN book_genres bg ON g.id = bg.genre_id
+          WHERE bg.book_id = b.id
+        ) as genres,
         l.name as language,
         rt.value as user_rating
       FROM books b
@@ -190,7 +191,6 @@ router.get('/shelves', verifyToken, async (req, res) => {
   }
 });
 
-// Add a book to user's library
 // Add book to user's shelf (requires active user)
 router.post('/books', [
   body('bookId').isInt().withMessage('Book ID must be an integer'),
@@ -242,7 +242,6 @@ router.post('/books', [
   }
 });
 
-// Update book shelf or rating
 // Update book shelf status (requires active user)
 router.put('/books/:bookId', checkUserActivation, async (req, res) => {
   const client = await pool.connect();
@@ -490,7 +489,7 @@ router.get('/stats', verifyToken, async (req, res) => {
   }
 });
 
-// Rate a book (separate endpoint for ratings table)
+// Rate a book (FIXED VERSION with 500 external ratings simulation)
 router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
   const client = await pool.connect();
   
@@ -510,13 +509,13 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
     // Start transaction
     await client.query('BEGIN');
 
-    // Check if book exists
-    const bookExists = await client.query(
-      'SELECT id FROM books WHERE id = $1',
+    // Get current book info
+    const bookInfo = await client.query(
+      'SELECT id, average_rating FROM books WHERE id = $1',
       [bookId]
     );
 
-    if (bookExists.rows.length === 0) {
+    if (bookInfo.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
@@ -524,38 +523,91 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
       });
     }
 
-    // Check if rating already exists
+    const currentAverageRating = parseFloat(bookInfo.rows[0].average_rating) || 4.0;
+
+    // Check if user already rated this book
     const existingRating = await client.query(
-      'SELECT id FROM ratings WHERE user_id = $1 AND book_id = $2',
+      'SELECT id, value FROM ratings WHERE user_id = $1 AND book_id = $2',
       [userId, bookId]
     );
 
+    // Get count of internal ratings (from ratings table)
+    const internalRatingsResult = await client.query(
+      'SELECT COUNT(*) as count FROM ratings WHERE book_id = $1',
+      [bookId]
+    );
+    const internalRatingsCount = parseInt(internalRatingsResult.rows[0].count);
+
+    // ✅ YOUR REQUIREMENT: Assume 500 external ratings + internal ratings
+    const EXTERNAL_RATINGS_COUNT = 1;
+    const currentTotalRatings = EXTERNAL_RATINGS_COUNT + internalRatingsCount;
+    
+    // Calculate current total rating points
+    const currentTotalPoints = currentTotalRatings * currentAverageRating;
+
+    let newAverageRating;
+    let newTotalRatings;
+
     if (existingRating.rows.length > 0) {
-      // Update existing rating
+      // ✅ User is UPDATING existing rating
+      const oldRating = parseFloat(existingRating.rows[0].value);
+      
+      // Remove old rating points and add new rating points
+      const adjustedTotalPoints = currentTotalPoints - oldRating + rating;
+      newAverageRating = adjustedTotalPoints / currentTotalRatings; // Total count stays same
+      newTotalRatings = currentTotalRatings;
+      
+      // Update existing rating in database
       await client.query(
         'UPDATE ratings SET value = $1, created_at = CURRENT_TIMESTAMP WHERE user_id = $2 AND book_id = $3',
         [rating, userId, bookId]
       );
+      
+      console.log(`📝 UPDATING: Old rating: ${oldRating}, New rating: ${rating}`);
+      console.log(`📊 Calculation: (${currentTotalPoints} - ${oldRating} + ${rating}) / ${currentTotalRatings} = ${newAverageRating}`);
+      
     } else {
-      // Insert new rating
+      // ✅ User is ADDING new rating
+      const newTotalPoints = currentTotalPoints + rating;
+      newTotalRatings = currentTotalRatings + 1;
+      newAverageRating = newTotalPoints / newTotalRatings;
+      
+      // Insert new rating in database
       await client.query(
         'INSERT INTO ratings (user_id, book_id, value, created_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
         [userId, bookId, rating]
       );
+      
+      console.log(`➕ ADDING: New rating: ${rating}`);
+      console.log(`📊 Calculation: (${currentTotalPoints} + ${rating}) / ${newTotalRatings} = ${newAverageRating}`);
     }
+
+    // Round to 2 decimal places
+    newAverageRating = Math.round(newAverageRating * 100) / 100;
+
+    // Update book's average rating
+    await client.query(
+      'UPDATE books SET average_rating = $1 WHERE id = $2',
+      [newAverageRating, bookId]
+    );
 
     // Commit transaction
     await client.query('COMMIT');
 
+    console.log(`✅ Final average rating: ${newAverageRating} (Total simulated ratings: ${newTotalRatings})`);
+
     res.json({
       success: true,
-      message: 'Rating saved successfully',
-      rating: rating
+      message: existingRating.rows.length > 0 ? 'Rating updated successfully' : 'Rating saved successfully',
+      rating: rating,
+      newAverageRating: newAverageRating,
+      totalRatings: newTotalRatings, // Include this for debugging
+      previousRating: existingRating.rows.length > 0 ? existingRating.rows[0].value : null
     });
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error saving rating:', error);
+    console.error('❌ Error saving rating:', error);
     res.status(500).json({
       success: false,
       message: 'Server error while saving rating',
@@ -566,7 +618,6 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
   }
 });
 
-// Set user's reading goal
 // Set reading goal (requires active user)
 router.post('/reading-goal', checkUserActivation, async (req, res) => {
   try {

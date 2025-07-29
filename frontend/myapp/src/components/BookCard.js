@@ -23,6 +23,7 @@ const BookCard = ({
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(initialIsInWishlist || shelf === 'want-to-read');
   const [currentUserRating, setCurrentUserRating] = useState(userRating);
+  const [currentAverageRating, setCurrentAverageRating] = useState(averageRating);
   const [isRating, setIsRating] = useState(false);
   const [currentReadStatus, setCurrentReadStatus] = useState(isRead);
   const [isMarkingAsRead, setIsMarkingAsRead] = useState(false);
@@ -90,64 +91,192 @@ const BookCard = ({
     }
   };
 
-  const handleRatingChange = async (rating) => {
-    if (!isLoggedIn()) {
-      navigate('/login');
-      return;
-    }
+  // In BookCard.js - Replace the handleRatingChange and addBookToLibrary functions
 
-    if (!isInUserLibrary) {
-      await addBookToLibrary(rating);
-      return;
-    }
+// <<<<<<< newbranch
+//     if (!isInUserLibrary) {
+//       await addBookToLibrary(rating);
+//       return;
+//     }
 
-    setIsRating(true);
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+//     setIsRating(true);
+//     try {
+//       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      const response = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ rating }),
-      });
+//       const response = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${token}`,
+//         },
+//         body: JSON.stringify({ rating }),
+//       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+//       if (!response.ok) {
+//         const errorData = await response.json();
+// =======
+const handleRatingChange = async (rating) => {
+  if (!isLoggedIn()) {
+    navigate('/login');
+    return;
+  }
+
+  setIsRating(true);
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    // Always try to rate directly first
+    let rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        rating: rating
+      })
+    });
+
+    // If rating fails because book is not in library, add it first
+    if (!rateResponse.ok) {
+      const errorData = await rateResponse.json();
+      
+      // Check if error is due to book not being in library
+      if (rateResponse.status === 404 || errorData.message?.includes('not found') || errorData.message?.includes('not in library')) {
+        console.log('Book not in library, adding it first...');
+        
+        // Add book to library first
+        const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            bookId: id,
+            shelf: 'want-to-read'
+          })
+        });
+
+        // If adding fails because book already exists, ignore the error and proceed to rating
+        if (!addResponse.ok) {
+          const addErrorData = await addResponse.json();
+          console.log('Add to library response:', addErrorData);
+          
+          // Only throw error if it's not a "already exists" type error
+          if (!addErrorData.message?.includes('already') && !addErrorData.message?.includes('exists')) {
+            throw new Error(addErrorData.message || 'Failed to add book to library');
+          }
+          console.log('Book already in library, proceeding to rate...');
+        }
+
+        // Now try rating again
+        rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating: rating
+          })
+        });
+
+        if (!rateResponse.ok) {
+          const rateErrorData = await rateResponse.json();
+          console.error('Rating error after adding to library:', rateErrorData);
+          throw new Error(rateErrorData.message || 'Failed to update rating');
+        }
+      } else {
+        // Different error, throw it
+        console.error('Rating error:', errorData);
+// >>>>>>> feature/analytics-dashboard
         throw new Error(errorData.message || 'Failed to update rating');
       }
-
-      setCurrentUserRating(rating);
-      console.log('✅ Rating updated successfully!');
-    } catch (error) {
-      console.error('Failed to update rating:', error);
-      alert('Failed to update rating. Please try again.');
-    } finally {
-      setIsRating(false);
     }
-  };
 
-  const addBookToLibrary = async (rating) => {
-    setIsRating(true);
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+// <<<<<<< newbranch
+//       setCurrentUserRating(rating);
+//       console.log('✅ Rating updated successfully!');
+//     } catch (error) {
+//       console.error('Failed to update rating:', error);
+//       alert('Failed to update rating. Please try again.');
+//     } finally {
+//       setIsRating(false);
+// =======
+    const data = await rateResponse.json();
+    setCurrentUserRating(rating);
+    
+    // Update average rating if provided by backend
+    if (data.newAverageRating) {
+      setCurrentAverageRating(data.newAverageRating);
+// >>>>>>> feature/analytics-dashboard
+    }
+    
+    console.log('✅ Rating updated successfully!');
+    
+  } catch (error) {
+    console.error('Failed to update rating:', error);
+    alert('Failed to update rating. Please try again.');
+  } finally {
+    setIsRating(false);
+  }
+};
 
-      const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bookId: id, shelf: 'want-to-read' }),
-      });
+// <<<<<<< newbranch
+//   const addBookToLibrary = async (rating) => {
+//     setIsRating(true);
+//     try {
+//       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      if (!addResponse.ok) {
-        const errorData = await addResponse.json();
+//       const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Authorization': `Bearer ${token}`,
+//         },
+//         body: JSON.stringify({ bookId: id, shelf: 'want-to-read' }),
+//       });
+
+//       if (!addResponse.ok) {
+//         const errorData = await addResponse.json();
+// =======
+  const addBookToLibrary = async (rating = null, shelf = 'want-to-read') => {
+  setIsRating(true);
+  try {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    
+    // Add book to library
+    const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        bookId: id,
+        shelf: shelf
+      })
+    });
+
+    // Handle "already exists" errors gracefully
+    if (!addResponse.ok) {
+      const errorData = await addResponse.json();
+      
+      if (errorData.message?.includes('already') || errorData.message?.includes('exists')) {
+        console.log('Book already in library, proceeding...');
+      } else {
+        console.error('Error response:', errorData);
+// >>>>>>> feature/analytics-dashboard
         throw new Error(errorData.message || 'Failed to add book to library');
       }
+    }
 
+// <<<<<<< newbranch
+// =======
+    // If rating was requested, rate the book
+    if (rating) {
+// >>>>>>> feature/analytics-dashboard
       const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
         method: 'POST',
         headers: {
@@ -159,19 +288,40 @@ const BookCard = ({
 
       if (!rateResponse.ok) {
         const errorData = await rateResponse.json();
+// <<<<<<< newbranch
+// =======
+        console.error('Rating error:', errorData);
+// >>>>>>> feature/analytics-dashboard
         throw new Error(errorData.message || 'Failed to update rating');
       }
 
+      const data = await rateResponse.json();
       setCurrentUserRating(rating);
-      console.log('✅ Book added to library and rated successfully!');
-      setCurrentShelf('want-to-read'); // Keep shelf in sync
-    } catch (error) {
-      console.error('Failed to add book and rate:', error);
-      alert('Failed to add book and rate. Please try again.');
-    } finally {
-      setIsRating(false);
+// <<<<<<< newbranch
+//       console.log('✅ Book added to library and rated successfully!');
+//       setCurrentShelf('want-to-read'); // Keep shelf in sync
+//     } catch (error) {
+//       console.error('Failed to add book and rate:', error);
+//       alert('Failed to add book and rate. Please try again.');
+//     } finally {
+//       setIsRating(false);
+// =======
+      
+      if (data.newAverageRating) {
+        setCurrentAverageRating(data.newAverageRating);
+      }
+// >>>>>>> feature/analytics-dashboard
     }
-  };
+    
+    console.log('✅ Book added to library' + (rating ? ' and rated' : '') + ' successfully!');
+    
+  } catch (error) {
+    console.error('Failed to add book' + (rating ? ' and rate' : '') + ':', error);
+    alert('Failed to add book' + (rating ? ' and rate' : '') + '. Please try again.');
+  } finally {
+    setIsRating(false);
+  }
+};
 
   const handleMarkAsRead = async (e) => {
     e.stopPropagation();
@@ -291,7 +441,7 @@ const BookCard = ({
       <div className="book-details">
         <div className="rating-row">
           <span className="avg-rating">
-            <FaStar className="star-icon yellow" /> {averageRating}
+            <FaStar className="star-icon yellow" /> {currentAverageRating}
           </span>
           <div onClick={(e) => e.stopPropagation()}>
             <RatingComponent

@@ -473,9 +473,16 @@ import React, { useEffect, useState, useRef } from 'react';
                   <span className="detail-val">{formatDate(book.publication_date)}</span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-key">Genre</span>
-                  <span className="detail-val genre-tag">{book.genre_name || 'Unknown'}</span>
-                </div>
+  <span className="detail-key">Genres</span>
+  <div className="genre-tags-container">
+    {Array.isArray(book.genres) && book.genres.length > 0
+      ? book.genres.map((g, i) => (
+          <span key={i} className="genre-tag">{g}</span>
+        ))
+      : <span className="genre-tag">Unknown</span>}
+  </div>
+</div>
+
                 <div className="detail-row">
                   <span className="detail-key">Language</span>
                   <span className="detail-val">{book.language_name || 'Unknown'}</span>

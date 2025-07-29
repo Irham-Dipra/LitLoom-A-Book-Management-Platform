@@ -63,10 +63,12 @@ router.get('/:id', async (req, res) => {
         b.page as pages,
         l.name as language_name,
         ph.name as publisher_name,
-        (SELECT g.name FROM genres g 
-         JOIN book_genres bg ON g.id = bg.genre_id 
-         WHERE bg.book_id = b.id 
-         ORDER BY g.id ASC LIMIT 1) as genre
+        (
+          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+          FROM genres g
+          JOIN book_genres bg ON g.id = bg.genre_id
+          WHERE bg.book_id = b.id
+        ) as genres
         ${userSelect}
       FROM books b
       JOIN book_authors ba ON b.id = ba.book_id
