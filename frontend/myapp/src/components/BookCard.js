@@ -453,9 +453,13 @@ const handleRatingChange = async (rating) => {
             <>
               <div className="loading-spinner" /> {isInWishlist ? 'Removing...' : 'Adding...'}
             </>
-          ) : currentShelf === 'read' || currentShelf === 'currently-reading' ? (
+          ) : currentShelf === 'read' ? (
             <>
               <FaCheck className="check-icon" /> Already Read
+            </>
+          ) : currentShelf === 'currently-reading' ? (
+            <>
+              <FaCheck className="check-icon" /> Currently Reading
             </>
           ) : isInWishlist ? (
             <>
