@@ -282,59 +282,7 @@ const Profile = () => {
             <h3>📚 My Library</h3>
             <ul className="sidebar-menu">
               <li onClick={() => navigate('/my-books')}>📖 All Books</li>
-              <li onClick={() => navigate('/wishlist')}>❤️ Wishlist</li>
-              <li>📊 Reading Stats</li>
-            </ul>
-          </div>
-
-          {/* Reading Stats Widget */}
-          {stats && (
-            <div className="sidebar-section">
-              <h3>📊 Reading Stats</h3>
-              <div className="stats-widget">
-                <div className="stat-row">
-                  <span className="stat-label">📚 Total Books</span>
-                  <span className="stat-value">{stats.total_books}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">✅ Read</span>
-                  <span className="stat-value">{stats.books_read}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">📖 Reading</span>
-                  <span className="stat-value">{stats.currently_reading}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">❤️ Want to Read</span>
-                  <span className="stat-value">{stats.want_to_read}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">⭐ Avg Rating</span>
-                  <span className="stat-value">{stats.avg_rating || 'N/A'}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">📝 Reviews</span>
-                  <span className="stat-value">{stats.rated_books}</span>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="sidebar-section">
-            <h3>👥 Social</h3>
-            <ul className="sidebar-menu">
-              <li>👫 Friends <span className="coming-soon">Soon</span></li>
-              <li>👥 Groups <span className="coming-soon">Soon</span></li>
-              <li>📢 Activity <span className="coming-soon">Soon</span></li>
-            </ul>
-          </div>
-
-          <div className="sidebar-section">
-            <h3>⚙️ Settings</h3>
-            <ul className="sidebar-menu">
-              <li>🔔 Notifications <span className="coming-soon">Soon</span></li>
-              <li>🔒 Privacy <span className="coming-soon">Soon</span></li>
-              <li>🎨 Themes <span className="coming-soon">Soon</span></li>
+              <li onClick={() => navigate('/my-books/stats')}>📊 Reading Stats</li>
             </ul>
           </div>
         </div>

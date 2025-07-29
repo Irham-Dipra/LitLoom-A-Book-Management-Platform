@@ -237,7 +237,7 @@ function MyBooks() {
                   className={`shelf-item ${selectedShelf === 'all' ? 'active' : ''}`}
                   onClick={() => handleShelfFilter('all')}
                 >
-                  <span>All ({books.length})</span>
+                  <span>All ({shelves.reduce((sum, s) => sum + parseInt(s.count), 0)})</span>
                 </div>
                 <div 
                   className={`shelf-item ${selectedShelf === 'want-to-read' ? 'active' : ''}`}
