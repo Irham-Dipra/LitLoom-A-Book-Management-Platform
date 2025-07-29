@@ -62,11 +62,55 @@ const BookCard = ({
   };
 
   const addToWishlist = async (userId, bookId) => {
-    // Your existing API call...
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      const response = await fetch('http://localhost:3000/myBooks/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bookId: bookId,
+          shelf: 'want-to-read'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add to wishlist');
+      }
+
+      console.log('✅ Book added to wishlist successfully!');
+    } catch (error) {
+      console.error('Failed to add to wishlist:', error);
+      throw error;
+    }
   };
 
   const removeFromWishlist = async (userId, bookId) => {
-    // Your existing API call...
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to remove from wishlist');
+      }
+
+      console.log('✅ Book removed from wishlist successfully!');
+    } catch (error) {
+      console.error('Failed to remove from wishlist:', error);
+      throw error;
+    }
   };
 
   const handleWishlistClick = async () => {
