@@ -272,6 +272,12 @@ function MyBooks() {
     return shelf ? shelf.count : 0;
   };
 
+  // Helper function to get the total count for "All" shelf
+  const getAllShelfCount = () => {
+    const allShelf = shelves.find(s => s.name === 'all');
+    return allShelf ? allShelf.count : 0;
+  };
+
   if (loading) {
     return (
       <div className="mybooks-container">
@@ -313,7 +319,7 @@ function MyBooks() {
                   className={`shelf-item ${selectedShelf === 'all' ? 'active' : ''}`}
                   onClick={() => handleShelfFilter('all')}
                 >
-                  <span>All ({shelves.reduce((sum, s) => sum + parseInt(s.count), 0)})</span>
+                  <span>All ({getAllShelfCount()})</span>
                 </div>
                 <div 
                   className={`shelf-item ${selectedShelf === 'want-to-read' ? 'active' : ''}`}
