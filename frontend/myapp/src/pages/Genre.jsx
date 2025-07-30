@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { FaArrowLeft } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import BookCard from '../components/BookCard';
 import './Genre.css';
@@ -27,14 +28,21 @@ function Genre() {
     checkAuthStatus();
   }, [id, currentPage, sortBy, sortOrder]);
 
-  // Update URL when filters change
+  // Update URL when filters change - use replace instead of push to avoid history pollution
   useEffect(() => {
     const params = new URLSearchParams();
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (sortBy !== 'title') params.set('sort', sortBy);
     if (sortOrder !== 'asc') params.set('order', sortOrder);
-    setSearchParams(params);
-  }, [currentPage, sortBy, sortOrder, setSearchParams]);
+    
+    // Use replace instead of normal navigation to avoid creating multiple history entries
+    const newUrl = params.toString() ? `?${params.toString()}` : '';
+    const currentUrl = window.location.search;
+    
+    if (newUrl !== currentUrl) {
+      window.history.replaceState(null, '', `/genre/${id}${newUrl}`);
+    }
+  }, [currentPage, sortBy, sortOrder, id]);
 
   const checkAuthStatus = () => {
     const token = localStorage.getItem('token');
@@ -117,6 +125,15 @@ function Genre() {
     navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
   };
 
+  const handleBackClick = () => {
+    // Try to go back in history, but if there's no history, go to home
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="genre-container">
@@ -124,6 +141,11 @@ function Genre() {
           loggedIn={loggedIn} 
           onSearch={handleSearch}
         />
+        <div className="back-button-container">
+          <button className="back-button" onClick={handleBackClick}>
+            <FaArrowLeft /> Back
+          </button>
+        </div>
         <div className="loading-spinner">Loading genre information...</div>
       </div>
     );
@@ -136,10 +158,15 @@ function Genre() {
           loggedIn={loggedIn} 
           onSearch={handleSearch}
         />
+        <div className="back-button-container">
+          <button className="back-button" onClick={handleBackClick}>
+            <FaArrowLeft /> Back
+          </button>
+        </div>
         <div className="error-message">
           <h2>Error</h2>
           <p>{error}</p>
-          <button onClick={() => navigate(-1)}>Go Back</button>
+          <button onClick={handleBackClick}>Go Back</button>
         </div>
       </div>
     );
@@ -151,6 +178,12 @@ function Genre() {
         loggedIn={loggedIn} 
         onSearch={handleSearch}
       />
+      
+      <div className="back-button-container">
+        <button className="back-button" onClick={handleBackClick}>
+          <FaArrowLeft /> Back
+        </button>
+      </div>
       
       <div className="genre-content">
         <div className="genre-header">
