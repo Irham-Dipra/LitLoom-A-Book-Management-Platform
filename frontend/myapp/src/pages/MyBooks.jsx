@@ -35,7 +35,13 @@ function MyBooks() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/myBooks/books?shelf=${selectedShelf}&sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`, {
+      
+      // Use different endpoint for rated books
+      const endpoint = selectedShelf === 'rated' 
+        ? `http://localhost:3000/myBooks/rated-books?sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`
+        : `http://localhost:3000/myBooks/books?shelf=${selectedShelf}&sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`;
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -117,6 +123,47 @@ function MyBooks() {
     } catch (error) {
       console.error('Failed to update rating:', error);
       alert('Failed to update rating. Please try again.');
+    }
+  };
+
+  const handleRatingRemove = async (bookId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}/rating`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove rating');
+      }
+
+      const result = await response.json();
+
+      // Update the book in local state
+      setBooks(books.map(book => 
+        book.id === bookId ? { 
+          ...book, 
+          user_rating: null,
+          avg_rating: result.newAverageRating 
+        } : book
+      ));
+
+      // If we're on the rated books shelf, remove the book from the list
+      if (selectedShelf === 'rated') {
+        setBooks(books.filter(book => book.id !== bookId));
+      }
+
+      // Refresh shelf counts
+      fetchShelves();
+
+      console.log('✅ Rating removed successfully!');
+      
+    } catch (error) {
+      console.error('Failed to remove rating:', error);
+      alert('Failed to remove rating. Please try again.');
     }
   };
 
@@ -286,6 +333,12 @@ function MyBooks() {
                 >
                   <span>Read ({getShelfCount('read')})</span>
                 </div>
+                <div 
+                  className={`shelf-item ${selectedShelf === 'rated' ? 'active' : ''}`}
+                  onClick={() => handleShelfFilter('rated')}
+                >
+                  <span>Rated Books ({getShelfCount('rated')})</span>
+                </div>
               </div>
             </div>
           </div>
@@ -403,25 +456,36 @@ function MyBooks() {
                           <span className="rating-text">{book.avg_rating?.toFixed(2) || 'N/A'}</span>
                         </td>
                         <td className="user-rating">
-                          <RatingComponent
-                            currentRating={book.user_rating || 0}
-                            onRatingChange={(rating) => handleRatingChange(book.id, rating)}
-                            isInteractive={true}
-                            size="small"
-                          />
+                          <div className="user-rating-container">
+                            <RatingComponent
+                              currentRating={book.user_rating || 0}
+                              onRatingChange={(rating) => handleRatingChange(book.id, rating)}
+                              isInteractive={true}
+                              size="small"
+                            />
+                            {book.user_rating && (
+                              <button 
+                                className="remove-rating-btn"
+                                onClick={() => handleRatingRemove(book.id)}
+                                title="Remove rating"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
                         </td>
                         <td className="book-shelves">
                           {editingShelf === book.id ? (
                             <div className="shelf-edit-dropdown">
                               <select 
-                                value={book.shelf || 'want-to-read'}
+                                value={book.shelf || 'untracked'}
                                 onChange={(e) => handleShelfChange(book.id, e.target.value)}
                                 autoFocus
                               >
                                 <option value="want-to-read">Want to Read</option>
                                 <option value="currently-reading">Currently Reading</option>
                                 <option value="read">Read</option>
-                                <option value="untracked">Untracked (Remove from library)</option>
+                                <option value="untracked">Untracked</option>
                               </select>
                               <button 
                                 className="cancel-edit-btn"
@@ -433,7 +497,7 @@ function MyBooks() {
                             </div>
                           ) : (
                             <div className="shelf-display">
-                              <span className="shelf-tag">{book.shelf || 'want-to-read'}</span>
+                              <span className="shelf-tag">{book.shelf || 'untracked'}</span>
                               <button 
                                 className="edit-shelf-btn"
                                 onClick={() => handleShelfEdit(book.id)}
