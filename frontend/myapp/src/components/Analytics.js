@@ -481,7 +481,7 @@ const Analytics = () => {
                     </select>
                   </div>
                   
-                  <div className="item-selector">
+                  <div className="item-selector min-books-container">
                     <label>Min Books:</label>
                     <input 
                       type="number" 
@@ -492,7 +492,7 @@ const Analytics = () => {
                     />
                   </div>
                   
-                  <div className="item-selector">
+                  <div className="item-selector min-rating-container">
                     <label>Min Rating:</label>
                     <input 
                       type="number" 
@@ -581,9 +581,8 @@ const Analytics = () => {
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Avg Rating</th>
+                      <th>Score</th>
                       <th>Books</th>
-                      <th>Ratings</th>
                       {['genre', 'author', 'publisher'].includes(activeTab) && (
                         <>
                           <th>Reviews</th>
@@ -598,9 +597,8 @@ const Analytics = () => {
                     {getCurrentData().map((item, index) => (
                       <tr key={index}>
                         <td>{item.name || item.month}</td>
-                        <td>{(item.avgRating || item.rating || 0).toFixed(1)}</td>
+                        <td className="score-cell">{(item.avgRating || item.rating || 0).toFixed(1)}</td>
                         <td>{item.totalBooks || item.reviews || '-'}</td>
-                        <td>{item.totalRatings || '-'}</td>
                         {['genre', 'author', 'publisher'].includes(activeTab) && (
                           <>
                             <td>{item.reviewCount || 0}</td>
