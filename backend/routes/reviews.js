@@ -284,7 +284,7 @@ router.get('/all', async (req, res) => {
 // POST /reviews/:reviewId/vote - Vote on a review (requires active user)
 router.post('/:reviewId/vote', checkUserActivation, async (req, res) => {
   const { reviewId } = req.params;
-  const { vote_type } = req.body;
+  let { vote_type } = req.body;
   
   // Get user ID from token
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -296,9 +296,13 @@ router.post('/:reviewId/vote', checkUserActivation, async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.id;
 
+    // Normalize vote type for backward compatibility
+    if (vote_type === 'up') vote_type = 'upvote';
+    if (vote_type === 'down') vote_type = 'downvote';
+
     // Validate vote type
     if (!['upvote', 'downvote'].includes(vote_type)) {
-      return res.status(400).json({ message: 'Invalid vote type' });
+      return res.status(400).json({ message: 'Invalid vote type. Must be upvote or downvote.' });
     }
 
     await pool.query('BEGIN');
@@ -321,14 +325,14 @@ router.post('/:reviewId/vote', checkUserActivation, async (req, res) => {
       } else {
         // Update vote (user switched from upvote to downvote or vice versa)
         await pool.query(
-          'UPDATE votes SET vote_type = $1, updated_at = NOW() WHERE review_id = $2 AND user_id = $3',
+          'UPDATE votes SET vote_type = $1, created_at = NOW() WHERE review_id = $2 AND user_id = $3',
           [vote_type, reviewId, userId]
         );
       }
     } else {
       // Insert new vote
       await pool.query(
-        'INSERT INTO votes (review_id, user_id, vote_type) VALUES ($1, $2, $3)',
+        'INSERT INTO votes (review_id, user_id, vote_type, created_at) VALUES ($1, $2, $3, NOW())',
         [reviewId, userId, vote_type]
       );
     }
@@ -507,7 +511,7 @@ router.get('/comments/:commentId/replies', async (req, res) => {
 // POST /reviews/comments/:commentId/vote - Vote on comment (requires active user)
 router.post('/comments/:commentId/vote', checkUserActivation, async (req, res) => {
   const { commentId } = req.params;
-  const { vote_type } = req.body;
+  let { vote_type } = req.body;
   
   // Get user ID from token
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -519,9 +523,13 @@ router.post('/comments/:commentId/vote', checkUserActivation, async (req, res) =
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.id;
 
+    // Normalize vote type for backward compatibility
+    if (vote_type === 'up') vote_type = 'upvote';
+    if (vote_type === 'down') vote_type = 'downvote';
+
     // Validate vote type
     if (!['upvote', 'downvote'].includes(vote_type)) {
-      return res.status(400).json({ message: 'Invalid vote type' });
+      return res.status(400).json({ message: 'Invalid vote type. Must be upvote or downvote.' });
     }
 
     await pool.query('BEGIN');
@@ -544,14 +552,14 @@ router.post('/comments/:commentId/vote', checkUserActivation, async (req, res) =
       } else {
         // Update vote (user switched from upvote to downvote or vice versa)
         await pool.query(
-          'UPDATE votes SET vote_type = $1, updated_at = NOW() WHERE comment_id = $2 AND user_id = $3',
+          'UPDATE votes SET vote_type = $1, created_at = NOW() WHERE comment_id = $2 AND user_id = $3',
           [vote_type, commentId, userId]
         );
       }
     } else {
       // Insert new vote
       await pool.query(
-        'INSERT INTO votes (comment_id, user_id, vote_type) VALUES ($1, $2, $3)',
+        'INSERT INTO votes (comment_id, user_id, vote_type, created_at) VALUES ($1, $2, $3, NOW())',
         [commentId, userId, vote_type]
       );
     }
