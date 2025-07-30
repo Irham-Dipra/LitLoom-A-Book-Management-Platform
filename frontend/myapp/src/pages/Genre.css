@@ -5,6 +5,42 @@
   color: white;
 }
 
+/* Back Button Styles */
+.back-button-container {
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 20px;
+  backdrop-filter: blur(10px);
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  text-decoration: none;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateX(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.back-button:active {
+  transform: translateX(-1px);
+}
+
 .genre-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -233,6 +269,15 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .back-button-container {
+    padding: 10px 15px;
+  }
+  
+  .back-button {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+  
   .genre-header {
     flex-direction: column;
     text-align: center;
@@ -273,6 +318,10 @@
 }
 
 @media (max-width: 480px) {
+  .back-button-container {
+    padding: 8px 10px;
+  }
+  
   .genre-header {
     padding: 20px;
   }
