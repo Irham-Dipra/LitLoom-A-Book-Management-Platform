@@ -12,7 +12,7 @@
  Target Server Version : 160009 (160009)
  File Encoding         : 65001
 
- Date: 29/07/2025 15:35:43
+ Date: 30/07/2025 11:35:23
 */
 
 
@@ -1485,18 +1485,8 @@ BEGIN
         user_book_count
     );
     
-    -- Update user data with deleted book title before foreign key is set to NULL
-    UPDATE user_books 
-    SET deleted_book_title = OLD.title 
-    WHERE book_id = OLD.id;
-    
-    UPDATE reviews 
-    SET deleted_book_title = OLD.title 
-    WHERE book_id = OLD.id;
-    
-    UPDATE ratings 
-    SET deleted_book_title = OLD.title 
-    WHERE book_id = OLD.id;
+    -- Note: No need to update deleted_book_title since records will be cascaded
+    -- The data is already preserved in the deletion log above
     
     RETURN OLD;
 END;
@@ -1724,7 +1714,7 @@ ALTER TABLE "public"."missing_books_analysis" OWNER TO "postgres";
 -- ----------------------------
 ALTER SEQUENCE "public"."authors_id_seq"
 OWNED BY "public"."authors"."id";
-SELECT setval('"public"."authors_id_seq"', 8430, true);
+SELECT setval('"public"."authors_id_seq"', 8435, true);
 
 -- ----------------------------
 -- Alter sequences owned by
@@ -1738,14 +1728,14 @@ SELECT setval('"public"."book_character_appearances_id_seq"', 4316, true);
 -- ----------------------------
 ALTER SEQUENCE "public"."book_deletion_log_id_seq"
 OWNED BY "public"."book_deletion_log"."id";
-SELECT setval('"public"."book_deletion_log_id_seq"', 1, false);
+SELECT setval('"public"."book_deletion_log_id_seq"', 15, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."book_genres_id_seq"
 OWNED BY "public"."book_genres"."id";
-SELECT setval('"public"."book_genres_id_seq"', 25123, true);
+SELECT setval('"public"."book_genres_id_seq"', 25125, true);
 
 -- ----------------------------
 -- Alter sequences owned by
@@ -1759,7 +1749,7 @@ SELECT setval('"public"."book_suggestions_id_seq"', 1, false);
 -- ----------------------------
 ALTER SEQUENCE "public"."books_id_seq"
 OWNED BY "public"."books"."id";
-SELECT setval('"public"."books_id_seq"', 7833, true);
+SELECT setval('"public"."books_id_seq"', 7835, true);
 
 -- ----------------------------
 -- Alter sequences owned by
@@ -1780,42 +1770,42 @@ SELECT setval('"public"."comments_id_seq"', 341, true);
 -- ----------------------------
 ALTER SEQUENCE "public"."failed_searches_id_seq"
 OWNED BY "public"."failed_searches"."id";
-SELECT setval('"public"."failed_searches_id_seq"', 1, false);
+SELECT setval('"public"."failed_searches_id_seq"', 11, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."genres_id_seq"
 OWNED BY "public"."genres"."id";
-SELECT setval('"public"."genres_id_seq"', 1414, true);
+SELECT setval('"public"."genres_id_seq"', 1425, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."languages_id_seq"
 OWNED BY "public"."languages"."id";
-SELECT setval('"public"."languages_id_seq"', 49, true);
+SELECT setval('"public"."languages_id_seq"', 53, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."login_history_id_seq"
 OWNED BY "public"."login_history"."id";
-SELECT setval('"public"."login_history_id_seq"', 14, true);
+SELECT setval('"public"."login_history_id_seq"', 15, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."publication_houses_id_seq"
 OWNED BY "public"."publication_houses"."id";
-SELECT setval('"public"."publication_houses_id_seq"', 3499, true);
+SELECT setval('"public"."publication_houses_id_seq"', 3501, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."ratings_id_seq"
 OWNED BY "public"."ratings"."id";
-SELECT setval('"public"."ratings_id_seq"', 14, true);
+SELECT setval('"public"."ratings_id_seq"', 22, true);
 
 -- ----------------------------
 -- Alter sequences owned by
@@ -1829,35 +1819,35 @@ SELECT setval('"public"."reviews_id_seq"', 139, true);
 -- ----------------------------
 ALTER SEQUENCE "public"."search_queries_id_seq"
 OWNED BY "public"."search_queries"."id";
-SELECT setval('"public"."search_queries_id_seq"', 10, true);
+SELECT setval('"public"."search_queries_id_seq"', 154, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."user_books_id_seq"
 OWNED BY "public"."user_books"."id";
-SELECT setval('"public"."user_books_id_seq"', 80, true);
+SELECT setval('"public"."user_books_id_seq"', 92, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."user_deactivation_history_id_seq"
 OWNED BY "public"."user_deactivation_history"."id";
-SELECT setval('"public"."user_deactivation_history_id_seq"', 1, false);
+SELECT setval('"public"."user_deactivation_history_id_seq"', 5, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."users_id_seq"
 OWNED BY "public"."users"."id";
-SELECT setval('"public"."users_id_seq"', 21, true);
+SELECT setval('"public"."users_id_seq"', 22, true);
 
 -- ----------------------------
 -- Alter sequences owned by
 -- ----------------------------
 ALTER SEQUENCE "public"."votes_id_seq"
 OWNED BY "public"."votes"."id";
-SELECT setval('"public"."votes_id_seq"', 606, true);
+SELECT setval('"public"."votes_id_seq"', 617, true);
 
 -- ----------------------------
 -- Primary Key structure for table authors
@@ -2224,7 +2214,7 @@ CREATE INDEX "idx_votes_user" ON "public"."votes" USING btree (
 -- ----------------------------
 -- Checks structure for table votes
 -- ----------------------------
-ALTER TABLE "public"."votes" ADD CONSTRAINT "votes_vote_type_check" CHECK (vote_type::text = ANY (ARRAY['up'::character varying::text, 'down'::character varying::text]));
+ALTER TABLE "public"."votes" ADD CONSTRAINT "votes_vote_type_check" CHECK (vote_type::text = ANY (ARRAY['upvote'::character varying::text, 'downvote'::character varying::text]));
 ALTER TABLE "public"."votes" ADD CONSTRAINT "vote_target_ck" CHECK (review_id IS NOT NULL AND comment_id IS NULL OR review_id IS NULL AND comment_id IS NOT NULL);
 
 -- ----------------------------
@@ -2293,13 +2283,13 @@ ALTER TABLE "public"."moderator_accounts" ADD CONSTRAINT "moderator_accounts_use
 -- ----------------------------
 -- Foreign Keys structure for table ratings
 -- ----------------------------
-ALTER TABLE "public"."ratings" ADD CONSTRAINT "ratings_book_id_fkey" FOREIGN KEY ("book_id") REFERENCES "public"."books" ("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "public"."ratings" ADD CONSTRAINT "ratings_book_id_fkey" FOREIGN KEY ("book_id") REFERENCES "public"."books" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "public"."ratings" ADD CONSTRAINT "ratings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- ----------------------------
 -- Foreign Keys structure for table reviews
 -- ----------------------------
-ALTER TABLE "public"."reviews" ADD CONSTRAINT "reviews_book_id_fkey" FOREIGN KEY ("book_id") REFERENCES "public"."books" ("id") ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE "public"."reviews" ADD CONSTRAINT "reviews_book_id_fkey" FOREIGN KEY ("book_id") REFERENCES "public"."books" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "public"."reviews" ADD CONSTRAINT "reviews_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON DELETE CASCADE ON UPDATE NO ACTION;
 
 -- ----------------------------
