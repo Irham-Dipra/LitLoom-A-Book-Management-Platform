@@ -154,7 +154,113 @@ router.get('/books', verifyToken, async (req, res) => {
   }
 });
 
-// Get user's shelves with book counts
+// Get user's rated books
+router.get('/rated-books', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { 
+      sort = 'date_added', 
+      order = 'desc', 
+      page = 1, 
+      limit = 20 
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+    
+    // Query to get all books the user has rated
+    let query = `
+      SELECT 
+        b.id,
+        b.title,
+        (SELECT a.name FROM authors a 
+         JOIN book_authors ba ON a.id = ba.author_id 
+         WHERE ba.book_id = b.id 
+         ORDER BY a.id ASC LIMIT 1) as author,
+        b.cover_image as cover_url,
+        COALESCE(b.average_rating, 0)::float as avg_rating,
+        COALESCE(ub.shelf, 'untracked') as shelf,
+        COALESCE(ub.date_added, rt.created_at) as date_added,
+        ub.date_read,
+        ub.review_id,
+        r.body as review,
+        (
+          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+          FROM genres g
+          JOIN book_genres bg ON g.id = bg.genre_id
+          WHERE bg.book_id = b.id
+        ) as genres,
+        l.name as language,
+        rt.value as user_rating,
+        rt.created_at as rating_date
+      FROM ratings rt
+      INNER JOIN books b ON rt.book_id = b.id
+      LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = rt.user_id
+      LEFT JOIN reviews r ON ub.review_id = r.id
+      LEFT JOIN languages l ON b.language_id = l.id
+      WHERE rt.user_id = $1
+    `;
+    
+    const queryParams = [userId];
+
+    // Add sorting
+    const validSortFields = ['date_added', 'date_read', 'title', 'author', 'rating', 'rating_date'];
+    const sortField = validSortFields.includes(sort) ? sort : 'rating_date';
+    const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
+    
+    if (sortField === 'rating') {
+      query += ` ORDER BY rt.value ${sortOrder}`;
+    } else if (sortField === 'rating_date') {
+      query += ` ORDER BY rt.created_at ${sortOrder}`;
+    } else if (sortField === 'title') {
+      query += ` ORDER BY b.title ${sortOrder}`;
+    } else if (sortField === 'author') {
+      query += ` ORDER BY (SELECT a.name FROM authors a 
+                    JOIN book_authors ba ON a.id = ba.author_id 
+                    WHERE ba.book_id = b.id 
+                    ORDER BY a.id ASC LIMIT 1) ${sortOrder}`;
+    } else {
+      query += ` ORDER BY COALESCE(ub.${sortField}, rt.created_at) ${sortOrder}`;
+    }
+
+    // Add pagination
+    queryParams.push(parseInt(limit));
+    query += ` LIMIT $${queryParams.length}`;
+    
+    queryParams.push(offset);
+    query += ` OFFSET $${queryParams.length}`;
+
+    const books = await pool.query(query, queryParams);
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM ratings rt
+      WHERE rt.user_id = $1
+    `;
+    
+    const countResult = await pool.query(countQuery, [userId]);
+    const totalBooks = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      books: books.rows,
+      totalBooks,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalBooks / limit),
+      hasNextPage: page * limit < totalBooks,
+      hasPrevPage: page > 1
+    });
+
+  } catch (error) {
+    console.error('Error fetching rated books:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching rated books' 
+    });
+  }
+});
+
+// Update shelves endpoint to include rated books count
 router.get('/shelves', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -166,12 +272,22 @@ router.get('/shelves', verifyToken, async (req, res) => {
       FROM user_books 
       WHERE user_id = $1
       GROUP BY shelf
+      
+      UNION ALL
+      
+      SELECT 
+        'rated' as name,
+        COUNT(*) as count
+      FROM ratings
+      WHERE user_id = $1
+      
       ORDER BY 
-        CASE shelf 
+        CASE name 
           WHEN 'want-to-read' THEN 1
           WHEN 'currently-reading' THEN 2
           WHEN 'read' THEN 3
-          ELSE 4
+          WHEN 'rated' THEN 4
+          ELSE 5
         END
     `;
 
@@ -628,6 +744,106 @@ router.post('/books/:bookId/rate', checkUserActivation, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while saving rating',
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Remove user's rating for a book
+router.delete('/books/:bookId/rating', verifyToken, async (req, res) => {
+  const client = await pool.connect();
+  
+  try {
+    const userId = req.user.id;
+    const { bookId } = req.params;
+
+    // Start transaction
+    await client.query('BEGIN');
+
+    // Check if user has rated this book
+    const existingRating = await client.query(
+      'SELECT id, value FROM ratings WHERE user_id = $1 AND book_id = $2',
+      [userId, bookId]
+    );
+
+    if (existingRating.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'No rating found for this book'
+      });
+    }
+
+    const oldRating = parseFloat(existingRating.rows[0].value);
+
+    // Get current book info
+    const bookInfo = await client.query(
+      'SELECT id, average_rating FROM books WHERE id = $1',
+      [bookId]
+    );
+
+    if (bookInfo.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        message: 'Book not found'
+      });
+    }
+
+    const currentAverageRating = parseFloat(bookInfo.rows[0].average_rating) || 4.0;
+
+    // Get count of internal ratings (before deletion)
+    const internalRatingsResult = await client.query(
+      'SELECT COUNT(*) as count FROM ratings WHERE book_id = $1',
+      [bookId]
+    );
+    const internalRatingsCount = parseInt(internalRatingsResult.rows[0].count);
+
+    // Simulate 500 external ratings consistently
+    const EXTERNAL_RATINGS_COUNT = 500;
+    const currentTotalRatings = EXTERNAL_RATINGS_COUNT + internalRatingsCount;
+    
+    // Calculate current total rating points
+    const currentTotalPoints = currentTotalRatings * currentAverageRating;
+
+    // Remove the user's rating
+    await client.query(
+      'DELETE FROM ratings WHERE user_id = $1 AND book_id = $2',
+      [userId, bookId]
+    );
+
+    // Calculate new average rating (removing one rating)
+    const adjustedTotalPoints = currentTotalPoints - oldRating;
+    const newTotalRatings = currentTotalRatings - 1;
+    const newAverageRating = Math.round((adjustedTotalPoints / newTotalRatings) * 100) / 100;
+
+    // Update book's average rating
+    await client.query(
+      'UPDATE books SET average_rating = $1 WHERE id = $2',
+      [newAverageRating, bookId]
+    );
+
+    // Commit transaction
+    await client.query('COMMIT');
+
+    console.log(`✅ Rating removed: Old rating: ${oldRating}, New average: ${newAverageRating}`);
+
+    res.json({
+      success: true,
+      message: 'Rating removed successfully',
+      removedRating: oldRating,
+      newAverageRating: newAverageRating,
+      totalRatings: newTotalRatings
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('❌ Error removing rating:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while removing rating',
       error: error.message
     });
   } finally {
