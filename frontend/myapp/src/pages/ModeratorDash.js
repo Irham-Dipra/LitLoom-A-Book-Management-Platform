@@ -2,6 +2,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Moderator.css';
+import Navbar from '../components/Navbar';
+import { FilterProvider } from '../contexts/FilterContext';
 
 const ModeratorDash = () => {
   const navigate = useNavigate();
@@ -39,38 +41,50 @@ const ModeratorDash = () => {
     navigate('/user-management');
   };
 
+  const handleSearch = (searchTerm) => {
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
   return (
-    <div className="moderator-dashboard">
-      <div className="moderator-header">
-        <h1>Moderator Dashboard</h1>
-        <button className="logout-btn" onClick={handleLogout}>
-          🚪 Logout
-        </button>
+    <FilterProvider>
+      <div className="moderator-dashboard">
+        <Navbar 
+          loggedIn={true} 
+          onSearch={handleSearch}
+          showFilters={true}
+        />
+        
+        <div className="moderator-header">
+          <h1>Moderator Dashboard</h1>
+          <button className="logout-btn" onClick={handleLogout}>
+            🚪 Logout
+          </button>
+        </div>
+        <p>Welcome to the Moderator Dashboard!</p>
+        <div className="dashboard-content">
+          <div className="dashboard-card" onClick={handleBooksManagementClick} style={{ cursor: 'pointer' }}>
+            <h3>📖 Manage Books</h3>
+            <p>Update or delete existing books</p>
+          </div>
+          <div className="dashboard-card" onClick={handleUserManagementClick} style={{ cursor: 'pointer' }}>
+            <h3>👥 Users Management</h3>
+            <p>Manage user accounts, search users, and control activation status</p>
+          </div>
+          <div className="dashboard-card">
+            <h3>Content Moderation</h3>
+            <p>Review and moderate user content</p>
+          </div>
+          <div className="dashboard-card">
+            <h3>Reports</h3>
+            <p>Handle user reports and complaints</p>
+          </div>
+          <div className="dashboard-card" onClick={handleAnalyticsClick} style={{ cursor: 'pointer' }}>
+            <h3>📊 Analytics</h3>
+            <p>View platform statistics and analytics</p>
+          </div>
+        </div>
       </div>
-      <p>Welcome to the Moderator Dashboard!</p>
-      <div className="dashboard-content">
-        <div className="dashboard-card" onClick={handleBooksManagementClick} style={{ cursor: 'pointer' }}>
-          <h3>📖 Manage Books</h3>
-          <p>Update or delete existing books</p>
-        </div>
-        <div className="dashboard-card" onClick={handleUserManagementClick} style={{ cursor: 'pointer' }}>
-          <h3>👥 Users Management</h3>
-          <p>Manage user accounts, search users, and control activation status</p>
-        </div>
-        <div className="dashboard-card">
-          <h3>Content Moderation</h3>
-          <p>Review and moderate user content</p>
-        </div>
-        <div className="dashboard-card">
-          <h3>Reports</h3>
-          <p>Handle user reports and complaints</p>
-        </div>
-        <div className="dashboard-card" onClick={handleAnalyticsClick} style={{ cursor: 'pointer' }}>
-          <h3>📊 Analytics</h3>
-          <p>View platform statistics and analytics</p>
-        </div>
-      </div>
-    </div>
+    </FilterProvider>
   );
 };
 
