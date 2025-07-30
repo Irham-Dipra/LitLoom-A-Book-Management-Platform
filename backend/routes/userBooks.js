@@ -47,49 +47,98 @@ router.get('/books', verifyToken, async (req, res) => {
 
     const offset = (page - 1) * limit;
     
-    // Build the query based on shelf filter - FIXED to use correct table/column names
-    let query = `
-      SELECT 
-        b.id,
-        b.title,
-        (SELECT a.name FROM authors a 
-         JOIN book_authors ba ON a.id = ba.author_id 
-         WHERE ba.book_id = b.id 
-         ORDER BY a.id ASC LIMIT 1) as author,
-        b.cover_image as cover_url,
-        COALESCE(b.average_rating, 0)::float as avg_rating,
-        ub.shelf,
-        ub.date_added,
-        ub.date_read,
-        ub.review_id,
-        r.body as review,
-        (
-          SELECT array_agg(DISTINCT g.name ORDER BY g.name)
-          FROM genres g
-          JOIN book_genres bg ON g.id = bg.genre_id
-          WHERE bg.book_id = b.id
-        ) as genres,
-        l.name as language,
-        rt.value as user_rating
-      FROM books b
-      INNER JOIN user_books ub ON b.id = ub.book_id
-      LEFT JOIN reviews r ON ub.review_id = r.id
-      LEFT JOIN languages l ON b.language_id = l.id
-      LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ub.user_id
-      WHERE ub.user_id = $1
-    `;
-    
-    const queryParams = [userId];
-    let paramCount = 1;
+    let query, queryParams, countQuery, countParams;
 
-    // Add shelf filter
-    if (shelf !== 'all') {
-      paramCount++;
-      query += ` AND ub.shelf = $${paramCount}`;
-      queryParams.push(shelf);
+    if (shelf === 'all') {
+      // For "All" shelf: show all distinct books from user_books + untracked rated books
+      query = `
+        SELECT DISTINCT
+          b.id,
+          b.title,
+          (SELECT a.name FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author,
+          b.cover_image as cover_url,
+          COALESCE(b.average_rating, 0)::float as avg_rating,
+          COALESCE(ub.shelf, 'untracked') as shelf,
+          COALESCE(ub.date_added, rt.created_at) as date_added,
+          ub.date_read,
+          ub.review_id,
+          r.body as review,
+          (
+            SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+            FROM genres g
+            JOIN book_genres bg ON g.id = bg.genre_id
+            WHERE bg.book_id = b.id
+          ) as genres,
+          l.name as language,
+          rt.value as user_rating
+        FROM books b
+        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $1
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $1
+        LEFT JOIN reviews r ON ub.review_id = r.id
+        LEFT JOIN languages l ON b.language_id = l.id
+        WHERE (ub.user_id = $1 OR rt.user_id = $1)
+      `;
+      
+      queryParams = [userId];
+      
+      // Count query for "All" shelf
+      countQuery = `
+        SELECT COUNT(DISTINCT b.id) as total
+        FROM books b
+        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $1
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $1
+        WHERE (ub.user_id = $1 OR rt.user_id = $1)
+      `;
+      countParams = [userId];
+      
+    } else {
+      // For specific shelves
+      query = `
+        SELECT 
+          b.id,
+          b.title,
+          (SELECT a.name FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author,
+          b.cover_image as cover_url,
+          COALESCE(b.average_rating, 0)::float as avg_rating,
+          ub.shelf,
+          ub.date_added,
+          ub.date_read,
+          ub.review_id,
+          r.body as review,
+          (
+            SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+            FROM genres g
+            JOIN book_genres bg ON g.id = bg.genre_id
+            WHERE bg.book_id = b.id
+          ) as genres,
+          l.name as language,
+          rt.value as user_rating
+        FROM books b
+        INNER JOIN user_books ub ON b.id = ub.book_id
+        LEFT JOIN reviews r ON ub.review_id = r.id
+        LEFT JOIN languages l ON b.language_id = l.id
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ub.user_id
+        WHERE ub.user_id = $1 AND ub.shelf = $2
+      `;
+      
+      queryParams = [userId, shelf];
+      
+      // Count query for specific shelves
+      countQuery = `
+        SELECT COUNT(*) as total
+        FROM user_books ub
+        WHERE ub.user_id = $1 AND ub.shelf = $2
+      `;
+      countParams = [userId, shelf];
     }
 
-    // Add sorting - FIXED to use correct column names
+    // Add sorting
     const validSortFields = ['date_added', 'date_read', 'title', 'author', 'rating'];
     const sortField = validSortFields.includes(sort) ? sort : 'date_added';
     const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
@@ -104,34 +153,17 @@ router.get('/books', verifyToken, async (req, res) => {
                     WHERE ba.book_id = b.id 
                     ORDER BY a.id ASC LIMIT 1) ${sortOrder}`;
     } else {
-      query += ` ORDER BY ub.${sortField} ${sortOrder}`;
+      query += ` ORDER BY COALESCE(ub.${sortField}, rt.created_at) ${sortOrder}`;
     }
 
     // Add pagination
-    paramCount++;
-    query += ` LIMIT $${paramCount}`;
     queryParams.push(parseInt(limit));
+    query += ` LIMIT $${queryParams.length}`;
     
-    paramCount++;
-    query += ` OFFSET $${paramCount}`;
     queryParams.push(offset);
+    query += ` OFFSET $${queryParams.length}`;
 
     const books = await pool.query(query, queryParams);
-
-    // Get total count for pagination
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM user_books ub
-      WHERE ub.user_id = $1
-    `;
-    
-    const countParams = [userId];
-    
-    if (shelf !== 'all') {
-      countQuery += ' AND ub.shelf = $2';
-      countParams.push(shelf);
-    }
-
     const countResult = await pool.query(countQuery, countParams);
     const totalBooks = parseInt(countResult.rows[0].total);
 
@@ -260,29 +292,46 @@ router.get('/rated-books', verifyToken, async (req, res) => {
   }
 });
 
-// Update shelves endpoint to include rated books count
+// Update shelves endpoint to show accurate counts
 router.get('/shelves', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     
     const query = `
-      SELECT 
-        shelf as name,
-        COUNT(*) as count
-      FROM user_books 
-      WHERE user_id = $1
-      GROUP BY shelf
-      
-      UNION ALL
-      
-      SELECT 
-        'rated' as name,
-        COUNT(*) as count
-      FROM ratings
-      WHERE user_id = $1
-      
+      WITH shelf_counts AS (
+        -- Count books in each shelf from user_books
+        SELECT 
+          shelf as name,
+          COUNT(*) as count
+        FROM user_books 
+        WHERE user_id = $1
+        GROUP BY shelf
+        
+        UNION ALL
+        
+        -- Count all rated books (all types: untracked, want-to-read, currently-reading, read)
+        SELECT 
+          'rated' as name,
+          COUNT(*) as count
+        FROM ratings
+        WHERE user_id = $1
+        
+        UNION ALL
+        
+        -- Count all distinct books (books in user_books + untracked rated books)
+        SELECT 
+          'all' as name,
+          COUNT(DISTINCT b.id) as count
+        FROM books b
+        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $1
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $1
+        WHERE (ub.user_id = $1 OR rt.user_id = $1)
+      )
+      SELECT name, count
+      FROM shelf_counts
       ORDER BY 
         CASE name 
+          WHEN 'all' THEN 0
           WHEN 'want-to-read' THEN 1
           WHEN 'currently-reading' THEN 2
           WHEN 'read' THEN 3
