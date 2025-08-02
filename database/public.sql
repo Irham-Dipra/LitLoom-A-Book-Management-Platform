@@ -12,7 +12,7 @@
  Target Server Version : 160009 (160009)
  File Encoding         : 65001
 
- Date: 30/07/2025 11:35:23
+ Date: 01/08/2025 22:02:27
 */
 
 
@@ -1777,7 +1777,7 @@ SELECT setval('"public"."failed_searches_id_seq"', 11, true);
 -- ----------------------------
 ALTER SEQUENCE "public"."genres_id_seq"
 OWNED BY "public"."genres"."id";
-SELECT setval('"public"."genres_id_seq"', 1425, true);
+SELECT setval('"public"."genres_id_seq"', 1426, true);
 
 -- ----------------------------
 -- Alter sequences owned by
