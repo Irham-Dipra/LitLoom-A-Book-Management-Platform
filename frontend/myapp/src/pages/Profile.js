@@ -5,6 +5,7 @@ import './Profile.css';
 import BookCard from '../components/BookCard';
 import Navbar from '../components/Navbar';
 import { FilterProvider } from '../contexts/FilterContext';
+import { FaBook, FaCalendarAlt, FaStar, FaChartBar, FaBullseye, FaFire, FaUser, FaBookOpen, FaTrophy, FaChartPie } from 'react-icons/fa';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -15,6 +16,11 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [stats, setStats] = useState(null);
+  const [monthlyStats, setMonthlyStats] = useState([]);
+  const [genreStats, setGenreStats] = useState([]);
+  const [authorStats, setAuthorStats] = useState([]);
+  const [bookLengthStats, setBookLengthStats] = useState([]);
+  const [ratingDistribution, setRatingDistribution] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,6 +120,11 @@ const Profile = () => {
       const data = await response.json();
       if (data.success) {
         setStats(data.stats);
+        setMonthlyStats(data.monthlyStats || []);
+        setGenreStats(data.genreStats || []);
+        setAuthorStats(data.authorStats || []);
+        setBookLengthStats(data.bookLengthStats || []);
+        setRatingDistribution(data.ratingDistribution || {});
       }
     } catch (error) {
       console.error('Error fetching reading stats:', error);
@@ -218,6 +229,59 @@ const Profile = () => {
     );
   }
 
+  // Stats helper functions from ReadingStats
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short'
+    });
+  };
+
+  const getAverageRating = () => {
+    if (!stats || !stats.books_with_ratings || stats.books_with_ratings === 0) return 0;
+    return parseFloat(stats.library_avg_rating) || 0;
+  };
+
+  const getUserPersonalRating = () => {
+    if (!stats || !stats.rated_books || stats.rated_books === 0) return 0;
+    return parseFloat(stats.user_avg_rating) || 0;
+  };
+
+  const getThisYearProgress = () => {
+    return stats?.books_read_this_year || 0;
+  };
+
+  const getThisYearPages = () => {
+    return stats?.pages_read_this_year || 0;
+  };
+
+  const getReadingStreak = () => {
+    if (!monthlyStats.length) return 0;
+    let streak = 0;
+    const sortedStats = [...monthlyStats].sort((a, b) => b.month.localeCompare(a.month));
+    for (const stat of sortedStats) {
+      if (parseInt(stat.books_read) > 0) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const getTopGenres = () => {
+    return genreStats.slice(0, 5);
+  };
+
+  const getTopAuthors = () => {
+    return authorStats.slice(0, 5);
+  };
+
+  const getUserGoal = () => {
+    return stats?.reading_goal || 12;
+  };
+
   return (
     <FilterProvider>
       <div className="profile-page">
@@ -289,14 +353,178 @@ const Profile = () => {
 
         {/* Main Content Area */}
         <div className="profile-content">
-          {/* Sidebar */}
+          {/* Sidebar with Reading Stats */}
           <div className="profile-sidebar">
             <div className="sidebar-section">
-              <h3>📚 My Library</h3>
-              <ul className="sidebar-menu">
-                <li onClick={() => navigate('/my-books')}>📖 All Books</li>
-                <li onClick={() => navigate('/my-books/stats')}>📊 Reading Stats</li>
-              </ul>
+              <h3> Reading Statistics</h3>
+              {stats ? (
+                <div className="profile-stats-container">
+                  {/* Overview Card */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaBook className="card-icon" />
+                      <h4>Library Overview</h4>
+                    </div>
+                    <div className="overview-grid">
+                      <div className="overview-item">
+                        <span className="overview-number">{stats.total_books || 0}</span>
+                        <span className="overview-label">Total Books</span>
+                      </div>
+                      <div className="overview-item">
+                        <span className="overview-number">{stats.books_read || 0}</span>
+                        <span className="overview-label">Read</span>
+                      </div>
+                      <div className="overview-item">
+                        <span className="overview-number">{stats.currently_reading || 0}</span>
+                        <span className="overview-label">Reading</span>
+                      </div>
+                      <div className="overview-item">
+                        <span className="overview-number">{stats.want_to_read || 0}</span>
+                        <span className="overview-label">Want to Read</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* This Year Progress */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaBullseye className="card-icon" />
+                      <h4>This Year Progress</h4>
+                    </div>
+                    <div className="progress-display">
+                      <div className="progress-number">
+                        <span className="big-stat-number">{getThisYearProgress()}</span>
+                        <span className="stat-label">/ {getUserGoal()} books</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ width: `${Math.min((getThisYearProgress() / getUserGoal()) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="progress-text">
+                        {getThisYearProgress() >= getUserGoal() ? 
+                          '🎉 Goal achieved!' : 
+                          `${getUserGoal() - getThisYearProgress()} books to go`
+                        }</p>
+                    </div>
+                  </div>
+
+                  {/* Reading Streak */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaFire className="card-icon" />
+                      <h4>Reading Streak</h4>
+                    </div>
+                    <div className="streak-display">
+                      <span className="big-stat-number">{getReadingStreak()}</span>
+                      <span className="stat-label">consecutive months</span>
+                    </div>
+                  </div>
+
+                  {/* Average Rating */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaStar className="card-icon" />
+                      <h4>Average Rating</h4>
+                    </div>
+                    <div className="rating-content">
+                      <div className="rating-display">
+                        <span className="big-stat-number">{(getAverageRating() || 0).toFixed(1)}</span>
+                        <div className="profile-review-stars">
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <span 
+                              key={star} 
+                              className={`star ${star <= getAverageRating() ? 'filled' : 'empty'}`}
+                            >⭐</span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="progress-text">
+                        Based on {stats?.books_with_ratings || 0} books
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Top Genres */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaChartPie className="card-icon" />
+                      <h4>Top Genres</h4>
+                    </div>
+                    <div className="top-items-list">
+                      {getTopGenres().map((genre, index) => (
+                        <div key={index} className="top-item">
+                          <span className="item-name">{genre.genre}</span>
+                          <span className="item-count">{genre.book_count}</span>
+                        </div>
+                      ))}
+                      {getTopGenres().length === 0 && (
+                        <p className="no-data-text">No genre data available</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top Authors */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaUser className="card-icon" />
+                      <h4>Top Authors</h4>
+                    </div>
+                    <div className="top-items-list">
+                      {getTopAuthors().map((author, index) => (
+                        <div key={index} className="top-item">
+                          <span className="item-name">{author.author}</span>
+                          <span className="item-count">{author.book_count}</span>
+                        </div>
+                      ))}
+                      {getTopAuthors().length === 0 && (
+                        <p className="no-data-text">No author data available</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pages Read */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <FaBookOpen className="card-icon" />
+                      <h4>Pages Read</h4>
+                    </div>
+                    <div className="pages-content">
+                      <div className="pages-stats">
+                        <div className="stat-item">
+                          <span className="stat-number">{stats?.total_pages_read || 0}</span>
+                          <span className="stat-label">Total Pages</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-number">{getThisYearPages()}</span>
+                          <span className="stat-label">This Year</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-number">{Math.round(stats?.avg_pages_per_book || 0)}</span>
+                          <span className="stat-label">Avg per Book</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="profile-stats-card">
+                    <div className="stats-card-header">
+                      <h4> Quick Actions</h4>
+                    </div>
+                    <ul className="sidebar-menu">
+                      <li onClick={() => navigate('/my-books')}> My Library</li>
+                      <li onClick={() => navigate('/my-books/stats')}> Full Stats</li>
+                      <li onClick={() => navigate('/')}> Browse Books</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className="stats-loading">
+                  <p>Loading statistics...</p>
+                </div>
+              )}
             </div>
           </div>
 

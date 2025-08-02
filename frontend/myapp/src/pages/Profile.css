@@ -657,6 +657,201 @@
   font-weight: 500;
 }
 
+/* Enhanced Sidebar Styles for Stats */
+.profile-stats-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-stats-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.profile-stats-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.stats-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-card-header .card-icon {
+  font-size: 1rem;
+  color: #4299e1;
+}
+
+.stats-card-header h4 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Overview Grid for Sidebar */
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.overview-item {
+  text-align: center;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.overview-number {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4299e1;
+  margin-bottom: 2px;
+}
+
+.overview-label {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Progress Display for Sidebar */
+.progress-display {
+  text-align: center;
+}
+
+.progress-number {
+  margin-bottom: 10px;
+}
+
+.big-stat-number {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #4299e1;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4299e1 0%, #667eea 100%);
+  transition: width 0.8s ease;
+}
+
+.progress-text {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+/* Streak Display */
+.streak-display {
+  text-align: center;
+}
+
+/* Rating Display */
+.rating-display {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* Top Items List */
+.top-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.top-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.item-name {
+  color: #e2e8f0;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-count {
+  color: #4299e1;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+/* Pages Stats for Sidebar */
+.pages-stats {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.stat-number {
+  display: block;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #4299e1;
+  margin-bottom: 2px;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.no-data-text {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-style: italic;
+  padding: 10px;
+}
+
+.stats-loading {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  padding: 20px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .profile-content {
@@ -672,6 +867,22 @@
   .books-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 15px;
+  }
+  
+  .profile-stats-container {
+    gap: 15px;
+  }
+  
+  .profile-stats-card {
+    padding: 12px;
+  }
+  
+  .big-stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .overview-grid {
+    gap: 6px;
   }
 }
 
@@ -719,7 +930,6 @@
   .books-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
-  
   
   .modal-content {
     margin: 20px;
