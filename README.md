@@ -202,9 +202,34 @@ Before running Litloom, ensure you have the following installed:
    
    # JWT Configuration
    JWT_SECRET=your-super-secret-jwt-key-here-make-it-long-and-random
+   
+   # Hardcover API Configuration (optional, for importing books)
+   HARDCOVER_API_KEY=your_hardcover_api_token
    ```
 
 ### Running the Application
+
+**Important**: Before starting the application, you may want to populate the database with books from the Hardcover API.
+
+#### **Optional: Import Books from Hardcover API**
+
+The database comes with sample data, but you can import fresh books using our integration script:
+
+```bash
+# Navigate to project root
+cd LitLoom
+
+# Import 100 books starting from API ID 100000
+node api-integrations/proper-books-integration.js 100000 100
+
+# Import 50 books starting from API ID 150000  
+node api-integrations/proper-books-integration.js 150000 50
+
+# Import 20 books (default) starting from API ID 200000
+node api-integrations/proper-books-integration.js 200000
+```
+
+**Note**: Ensure you have a valid `HARDCOVER_API_KEY` in your `.env` file before running the import script.
 
 1. **Start the backend server**
    ```bash
@@ -231,6 +256,46 @@ The database includes sample accounts:
 - **Regular User**: Username with sample library and reviews
 - **Moderator**: Admin access to management features
 
+---
+
+## 🔗 Hardcover API Integration
+
+LitLoom's extensive book catalog of **7,800+ books** was populated using the **Hardcover API**, a comprehensive GraphQL-based book database. Our integration script ensures high-quality book records with complete metadata.
+
+### **How It Works**
+
+The integration script (`api-integrations/proper-books-integration.js`) fetches books using a single GraphQL query:
+
+```graphql
+query GetBooks($startId: Int!, $limit: Int!) {
+  books(where: {id: {_gte: $startId}}, limit: $limit, order_by: {id: asc}) {
+    id, title, description, pages, rating, users_count, cached_tags
+    image { url }
+    contributions { author { id, name, bio, image { url } } }
+    book_characters { character { id, name, biography } }
+    editions {
+      id, isbn_13, isbn_10, release_date, publisher_id, language_id
+      country { name }, language { language }
+    }
+  }
+}
+```
+
+### **Data Processing Strategy**
+
+1. **Complete Data Collection**: Extracts data from main book record and ALL available editions
+2. **Quality Assurance**: Only imports books with 100% complete metadata (title, description, cover, ISBN, language, publisher, country, date, pages)
+3. **Smart Selection**: Uses edition with highest reader count for best data
+4. **Automatic Creation**: Creates new authors, genres, publishers, and languages as needed
+5. **Rate Limiting**: Respects API limits with delays between requests
+
+### **Import Results**
+
+- **Success Rate**: ~85% of processed books meet quality standards
+- **Complete Metadata**: Every imported book has all required fields
+- **Rich Relationships**: Authors with bios/images, genres from tags, character data
+- **Publisher Details**: Fetched via separate API calls for accuracy
+
 ## 📁 Project Structure
 
 ```
@@ -252,7 +317,8 @@ LitLoom/
 │   │   ├── users.js            # User management
 │   │   ├── moderator.js        # Moderator dashboard
 │   │   └── addBook.js          # Book addition wizard
-│   ├── .env                    # Environment variables
+│   ├── .env                    # Environment variables (with API keys)
+│   ├── .gitignore              # Git ignore rules (excludes .env, node_modules, db/)
 │   ├── index.js                # Main server file
 │   └── package.json            # Backend dependencies
 ├── frontend/myapp/             # React frontend
@@ -278,15 +344,22 @@ LitLoom/
 │   │   ├── App.js              # Main application component
 │   │   └── index.js            # Application entry point
 │   └── package.json            # Frontend dependencies
-├── api-integrations/           # External API integration
-│   └── proper-books-integration.js # Hardcover API import
+├── api-integrations/           # External API integration scripts
+│   └── proper-books-integration.js # Hardcover API import script
 ├── database/                   # Database schema and data
-│   ├── litloom_schema_only.sql # Database structure
-│   ├── litloom_with_data.sql   # Complete database with data
+│   ├── litloom_schema_only.sql # Database structure only
+│   ├── litloom_with_data.sql   # Complete database with sample data
 │   ├── public.sql              # Full schema export
 │   └── README.md               # Database documentation
-└── README.md                   # Project documentation
+└── README.md                   # Project documentation (this file)
 ```
+
+### **Key File Explanations**
+
+- **backend/.env**: Contains database credentials, JWT secrets, and Hardcover API key
+- **backend/.gitignore**: Excludes sensitive files (.env), dependencies (node_modules/), and local database files (db/)
+- **api-integrations/proper-books-integration.js**: Comprehensive book import script that fetches data from Hardcover API with complete metadata validation
+- **database/**: Contains SQL dumps for easy setup - use `litloom_with_data.sql` for complete setup or `litloom_schema_only.sql` for schema-only import
 
 ## 🗄 Database Schema
 
