@@ -386,6 +386,10 @@ function Browse() {
     });
   };
 
+  const handleUserClick = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
+
   if (loading) {
     return (
       <div className="browse-page">
@@ -456,7 +460,12 @@ function Browse() {
                       )}
                     </div>
                     <div className="user-info">
-                      <h3 className="user-name">{getDisplayName(review)}</h3>
+                      <h3 
+                        className="user-name clickable-username" 
+                        onClick={() => handleUserClick(review.user_id)}
+                      >
+                        {getDisplayName(review)}
+                      </h3>
                       <p className="review-date">{formatDate(review.created_at)}</p>
                     </div>
                   </div>
@@ -533,7 +542,12 @@ function Browse() {
                                 )}
                               </div>
                               <div className="comment-info">
-                                <span className="comment-user-name">{comment.user_name}</span>
+                                <span 
+                                  className="comment-user-name clickable-username"
+                                  onClick={() => handleUserClick(comment.user_id)}
+                                >
+                                  {comment.user_name}
+                                </span>
                                 <span className="comment-date">{formatDate(comment.created_at)}</span>
                               </div>
                             </div>
@@ -591,7 +605,12 @@ function Browse() {
                                             )}
                                           </div>
                                           <div className="comment-info">
-                                            <span className="comment-user-name">{reply.user_name}</span>
+                                            <span 
+                                              className="comment-user-name clickable-username"
+                                              onClick={() => handleUserClick(reply.user_id)}
+                                            >
+                                              {reply.user_name}
+                                            </span>
                                             <span className="comment-date">{formatDate(reply.created_at)}</span>
                                           </div>
                                         </div>

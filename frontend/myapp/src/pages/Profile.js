@@ -1,6 +1,6 @@
 // src/pages/Profile.jsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import './Profile.css';
 import BookCard from '../components/BookCard';
 import Navbar from '../components/Navbar';
@@ -8,6 +8,7 @@ import { FilterProvider } from '../contexts/FilterContext';
 import { FaBook, FaCalendarAlt, FaStar, FaChartBar, FaBullseye, FaFire, FaUser, FaBookOpen, FaTrophy, FaChartPie } from 'react-icons/fa';
 
 const Profile = () => {
+  const { userId } = useParams(); // Get userId from URL params
   const [user, setUser] = useState(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -21,59 +22,89 @@ const Profile = () => {
   const [authorStats, setAuthorStats] = useState([]);
   const [bookLengthStats, setBookLengthStats] = useState([]);
   const [ratingDistribution, setRatingDistribution] = useState({});
+  const [currentUserId, setCurrentUserId] = useState(null); // Track current logged-in user
   const navigate = useNavigate();
+
+  // Determine if this is a public profile view or personal profile
+  const isPublicProfile = !!userId;
+  const isOwnProfile = currentUserId && userId && parseInt(currentUserId) === parseInt(userId);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          localStorage.removeItem('loggedIn');
-          setMessage('Not logged in.');
-          setIsLoading(false);
-          setTimeout(() => navigate('/login'), 1500);
-          return;
-        }
+        const loggedInUserId = localStorage.getItem('userId');
+        setCurrentUserId(loggedInUserId);
 
-        const res = await fetch('http://localhost:3000/auth/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        if (isPublicProfile) {
+          // Fetching public profile
+          const res = await fetch(`http://localhost:3000/users/${userId}/public`);
+          const data = await res.json();
 
-        const data = await res.json();
-
-        if (data.success && data.user) {
-          setUser(data.user);
-          setEditForm({
-            first_name: data.user.first_name || '',
-            last_name: data.user.last_name || '',
-            bio: data.user.bio || '',
-            profile_picture_url: data.user.profile_picture_url || ''
-          });
-          setIsLoading(false);
-          await fetchMyBooks();
-          await fetchMyReviews();
-          await fetchReadingStats();
+          if (data.success && data.user) {
+            setUser(data.user);
+            setIsLoading(false);
+            await fetchUserBooks(userId);
+            await fetchUserReviews(userId);
+            await fetchUserStats(userId);
+          } else {
+            setMessage(data.message || 'User not found or account is deactivated.');
+            setIsLoading(false);
+          }
         } else {
-          localStorage.removeItem('token');
-          localStorage.removeItem('loggedIn');
-          setMessage(data.message || 'Session expired. Please login again.');
-          setIsLoading(false);
-          setTimeout(() => navigate('/login'), 2000);
+          // Fetching own profile (existing logic)
+          if (!token) {
+            localStorage.removeItem('loggedIn');
+            setMessage('Not logged in.');
+            setIsLoading(false);
+            setTimeout(() => navigate('/login'), 1500);
+            return;
+          }
+
+          const res = await fetch('http://localhost:3000/auth/profile', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await res.json();
+
+          if (data.success && data.user) {
+            setUser(data.user);
+            setEditForm({
+              first_name: data.user.first_name || '',
+              last_name: data.user.last_name || '',
+              bio: data.user.bio || '',
+              profile_picture_url: data.user.profile_picture_url || ''
+            });
+            setIsLoading(false);
+            await fetchMyBooks();
+            await fetchMyReviews();
+            await fetchReadingStats();
+          } else {
+            localStorage.removeItem('token');
+            localStorage.removeItem('loggedIn');
+            setMessage(data.message || 'Session expired. Please login again.');
+            setIsLoading(false);
+            setTimeout(() => navigate('/login'), 2000);
+          }
         }
       } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('loggedIn');
+        if (!isPublicProfile) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('loggedIn');
+        }
         setMessage('Network error. Please try again.');
         setIsLoading(false);
         console.error(err);
-        setTimeout(() => navigate('/login'), 2000);
+        if (!isPublicProfile) {
+          setTimeout(() => navigate('/login'), 2000);
+        }
       }
     };
 
     fetchUser();
-  }, [navigate]);
+  }, [navigate, userId, isPublicProfile]);
 
   const fetchMyBooks = async () => {
     try {
@@ -92,6 +123,18 @@ const Profile = () => {
     }
   };
 
+  const fetchUserBooks = async (targetUserId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/myBooks/user/${targetUserId}/books?limit=6`);
+      const data = await response.json();
+      if (data.success) {
+        setMyBooks(data.books);
+      }
+    } catch (error) {
+      console.error('Error fetching user books:', error);
+    }
+  };
+
   const fetchMyReviews = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -102,10 +145,22 @@ const Profile = () => {
       });
       const data = await response.json();
       if (data.success) {
-        setReviews(data.reviews.slice(0, 5)); // Show only 5 recent reviews
+        setReviews(data.reviews.slice(0, 5));
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+    }
+  };
+
+  const fetchUserReviews = async (targetUserId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/reviews/user/${targetUserId}`);
+      const data = await response.json();
+      if (data.success) {
+        setReviews(data.reviews.slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Error fetching user reviews:', error);
     }
   };
 
@@ -128,6 +183,23 @@ const Profile = () => {
       }
     } catch (error) {
       console.error('Error fetching reading stats:', error);
+    }
+  };
+
+  const fetchUserStats = async (targetUserId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/myBooks/user/${targetUserId}/stats`);
+      const data = await response.json();
+      if (data.success) {
+        setStats(data.stats);
+        setMonthlyStats(data.monthlyStats || []);
+        setGenreStats(data.genreStats || []);
+        setAuthorStats(data.authorStats || []);
+        setBookLengthStats(data.bookLengthStats || []);
+        setRatingDistribution(data.ratingDistribution || {});
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
     }
   };
 
@@ -180,6 +252,11 @@ const Profile = () => {
 
   const handleSearch = (searchTerm) => {
     navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
+  const getUserFirstName = (user) => {
+    if (!user) return 'User';
+    return user.first_name || user.username || 'User';
   };
 
   const getFullName = (user) => {
@@ -286,7 +363,7 @@ const Profile = () => {
     <FilterProvider>
       <div className="profile-page">
         <Navbar 
-          loggedIn={true} 
+          loggedIn={!isPublicProfile || !!localStorage.getItem('token')} 
           onSearch={handleSearch}
           showFilters={true}
         />
@@ -310,8 +387,8 @@ const Profile = () => {
                 )}
                 {user.bio && <p className="profile-bio">{user.bio}</p>}
                 
-                {/* Deactivation Status */}
-                {!user.is_active && (
+                {/* Only show deactivation status for own profile */}
+                {!isPublicProfile && !user.is_active && (
                   <div className="deactivation-status">
                     <div className="deactivation-header">
                       <span className="deactivation-badge">🚫 Account Deactivated</span>
@@ -335,19 +412,23 @@ const Profile = () => {
                 )}
               </div>
             </div>
-            <div className="profile-actions">
-              <button className="edit-profile-btn" onClick={handleEditProfile}>
-                ✏️ Edit Profile
-              </button>
-              {user.is_moderator && (
-                <button className="moderator-dashboard-btn" onClick={() => navigate('/moderator-dashboard')}>
-                  🔧 Moderator Dashboard
+            
+            {/* Only show actions for own profile */}
+            {!isPublicProfile && (
+              <div className="profile-actions">
+                <button className="edit-profile-btn" onClick={handleEditProfile}>
+                  ✏️ Edit Profile
                 </button>
-              )}
-              <button className="logout-btn" onClick={handleLogout}>
-                🚪 Logout
-              </button>
-            </div>
+                {user.is_moderator && (
+                  <button className="moderator-dashboard-btn" onClick={() => navigate('/moderator-dashboard')}>
+                    🔧 Moderator Dashboard
+                  </button>
+                )}
+                <button className="logout-btn" onClick={handleLogout}>
+                  🚪 Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -356,7 +437,7 @@ const Profile = () => {
           {/* Sidebar with Reading Stats */}
           <div className="profile-sidebar">
             <div className="sidebar-section">
-              <h3> Reading Statistics</h3>
+              <h3>📊 Reading Statistics</h3>
               {stats ? (
                 <div className="profile-stats-container">
                   {/* Overview Card */}
@@ -508,17 +589,19 @@ const Profile = () => {
                     </div>
                   </div>
 
-                  {/* Quick Actions */}
-                  <div className="profile-stats-card">
-                    <div className="stats-card-header">
-                      <h4> Quick Actions</h4>
+                  {/* Only show Quick Actions for own profile */}
+                  {!isPublicProfile && (
+                    <div className="profile-stats-card">
+                      <div className="stats-card-header">
+                        <h4>⚡ Quick Actions</h4>
+                      </div>
+                      <ul className="sidebar-menu">
+                        <li onClick={() => navigate('/my-books')}>📚 My Library</li>
+                        <li onClick={() => navigate('/my-books/stats')}>📈 Full Stats</li>
+                        <li onClick={() => navigate('/')}>🔍 Browse Books</li>
+                      </ul>
                     </div>
-                    <ul className="sidebar-menu">
-                      <li onClick={() => navigate('/my-books')}> My Library</li>
-                      <li onClick={() => navigate('/my-books/stats')}> Full Stats</li>
-                      <li onClick={() => navigate('/')}> Browse Books</li>
-                    </ul>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="stats-loading">
@@ -530,13 +613,15 @@ const Profile = () => {
 
           {/* Main Feed */}
           <div className="profile-main">
-            {/* My Books Section */}
+            {/* Books Section */}
             <div className="content-section">
               <div className="section-header">
-                <h2>📚 My Books</h2>
-                <button className="view-all-btn" onClick={() => navigate('/my-books')}>
-                  View All
-                </button>
+                <h2>📚 {isPublicProfile ? `${getUserFirstName(user)}'s Books` : 'My Books'}</h2>
+                {!isPublicProfile && (
+                  <button className="view-all-btn" onClick={() => navigate('/my-books')}>
+                    View All
+                  </button>
+                )}
               </div>
               <div className="books-grid">
                 {myBooks.length > 0 ? (
@@ -550,15 +635,18 @@ const Profile = () => {
                       coverUrl={book.cover_url}
                       userRating={book.user_rating || 0}
                       isRead={book.shelf === 'read'}
-                      isInUserLibrary={true}
+                      isInUserLibrary={!isPublicProfile}
                       shelf={book.shelf}
                       isInWishlist={book.shelf === 'want-to-read'}
+                      disableActions={isPublicProfile} // Disable actions for public profiles
                     />
                   ))
                 ) : (
                   <div className="empty-state">
-                    <p>No books in your library yet. Start building your collection!</p>
-                    <button onClick={() => navigate('/')}>Browse Books</button>
+                    <p>{isPublicProfile ? `${getUserFirstName(user)} hasn't added any books yet.` : 'No books in your library yet. Start building your collection!'}</p>
+                    {!isPublicProfile && (
+                      <button onClick={() => navigate('/')}>Browse Books</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -567,8 +655,10 @@ const Profile = () => {
             {/* Reviews Section */}
             <div className="content-section">
               <div className="section-header">
-                <h2>⭐ My Reviews</h2>
-                <button className="view-all-btn">View All</button>
+                <h2>⭐ {isPublicProfile ? `${getUserFirstName(user)}'s Reviews` : 'My Reviews'}</h2>
+                {!isPublicProfile && (
+                  <button className="view-all-btn">View All</button>
+                )}
               </div>
               <div className="reviews-list">
                 {reviews.length > 0 ? (
@@ -609,7 +699,7 @@ const Profile = () => {
                   ))
                 ) : (
                   <div className="empty-state">
-                    <p>No reviews yet. Share your thoughts on books you've read!</p>
+                    <p>{isPublicProfile ? `${getUserFirstName(user)} hasn't written any reviews yet.` : 'No reviews yet. Share your thoughts on books you\'ve read!'}</p>
                   </div>
                 )}
               </div>
@@ -617,8 +707,8 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Edit Profile Modal */}
-        {isEditing && (
+        {/* Only show Edit Profile Modal for own profile */}
+        {!isPublicProfile && isEditing && (
           <div className="modal-overlay" onClick={() => setIsEditing(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <h2>Edit Profile</h2>

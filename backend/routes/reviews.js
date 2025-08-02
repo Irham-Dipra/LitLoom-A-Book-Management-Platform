@@ -600,4 +600,57 @@ router.post('/comments/:commentId/vote', checkUserActivation, async (req, res) =
   }
 });
 
+// GET /reviews/user/:userId - Get public user's reviews
+router.get('/user/:userId', optionalUserActivationCheck, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check if user exists and is active
+    const userCheck = await pool.query(
+      'SELECT id FROM users WHERE id = $1 AND is_active = true',
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or account is deactivated'
+      });
+    }
+
+    const reviewsQuery = `
+      SELECT 
+        r.id,
+        r.title as review_title,
+        r.body,
+        r.rating,
+        r.created_at,
+        r.updated_at,
+        b.id as book_id,
+        b.title as book_title,
+        b.cover_image,
+        a.name as author_name
+      FROM reviews r
+      JOIN books b ON r.book_id = b.id
+      JOIN book_authors ba ON b.id = ba.book_id
+      JOIN authors a ON ba.author_id = a.id
+      WHERE r.user_id = $1
+      ORDER BY r.created_at DESC
+    `;
+
+    const reviews = await pool.query(reviewsQuery, [userId]);
+
+    res.json({
+      success: true,
+      reviews: reviews.rows
+    });
+  } catch (error) {
+    console.error('Error fetching user reviews:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching reviews'
+    });
+  }
+});
+
 module.exports = router;

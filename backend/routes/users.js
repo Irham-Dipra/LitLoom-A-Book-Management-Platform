@@ -117,4 +117,39 @@ router.put('/profile', [
   }
 });
 
+// GET /users/:userId/public - Get public user profile
+router.get('/:userId/public', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await pool.query(`
+      SELECT 
+        u.id, u.username, u.first_name, u.last_name, u.bio, 
+        u.profile_picture_url, u.created_at, u.is_active,
+        EXISTS(SELECT 1 FROM moderator_accounts m WHERE m.user_id = u.id) AS is_moderator
+      FROM users u 
+      WHERE u.id = $1 AND u.is_active = true`,
+      [userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or account is deactivated'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: user.rows[0]
+    });
+  } catch (error) {
+    console.error('Error fetching public profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching profile'
+    });
+  }
+});
+
 module.exports = router;

@@ -588,6 +588,17 @@
   cursor: not-allowed;
 }
 
+/* Clickable Username */
+.clickable-username {
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.clickable-username:hover {
+  color: #4299e1;
+  text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .browse-container {

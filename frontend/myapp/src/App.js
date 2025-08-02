@@ -30,6 +30,7 @@ function App() {
           <Route path="/book/:id" element={<IndividualBook />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/addbook" element={<AddBook />} />
           <Route path="/my-books" element={<MyBooks />} />

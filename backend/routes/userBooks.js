@@ -976,4 +976,221 @@ router.get('/reading-goal', verifyToken, async (req, res) => {
   }
 });
 
+// Get public user's books
+router.get('/user/:userId/books', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { 
+      shelf = 'all', 
+      sort = 'date_added', 
+      order = 'desc', 
+      page = 1, 
+      limit = 20 
+    } = req.query;
+
+    // Check if user exists and is active
+    const userCheck = await pool.query(
+      'SELECT id FROM users WHERE id = $1 AND is_active = true',
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or account is deactivated'
+      });
+    }
+
+    const offset = (page - 1) * limit;
+    
+    let query, queryParams, countQuery, countParams;
+
+    if (shelf === 'all') {
+      // For "All" shelf: show all distinct books from user_books + untracked rated books
+      query = `
+        SELECT DISTINCT
+          b.id,
+          b.title,
+          (SELECT a.name FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author,
+          b.cover_image as cover_url,
+          COALESCE(b.average_rating, 0)::float as avg_rating,
+          COALESCE(ub.shelf, 'untracked') as shelf,
+          COALESCE(ub.date_added, rt.created_at) as date_added,
+          ub.date_read,
+          ub.review_id,
+          r.body as review,
+          (
+            SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+            FROM genres g
+            JOIN book_genres bg ON g.id = bg.genre_id
+            WHERE bg.book_id = b.id
+          ) as genres,
+          l.name as language,
+          rt.value as user_rating
+        FROM books b
+        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $1
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $1
+        LEFT JOIN reviews r ON ub.review_id = r.id
+        LEFT JOIN languages l ON b.language_id = l.id
+        WHERE (ub.user_id = $1 OR rt.user_id = $1)
+      `;
+      
+      queryParams = [userId];
+      
+      countQuery = `
+        SELECT COUNT(DISTINCT b.id) as total
+        FROM books b
+        LEFT JOIN user_books ub ON b.id = ub.book_id AND ub.user_id = $1
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = $1
+        WHERE (ub.user_id = $1 OR rt.user_id = $1)
+      `;
+      countParams = [userId];
+      
+    } else {
+      // For specific shelves
+      query = `
+        SELECT 
+          b.id,
+          b.title,
+          (SELECT a.name FROM authors a 
+           JOIN book_authors ba ON a.id = ba.author_id 
+           WHERE ba.book_id = b.id 
+           ORDER BY a.id ASC LIMIT 1) as author,
+          b.cover_image as cover_url,
+          COALESCE(b.average_rating, 0)::float as avg_rating,
+          ub.shelf,
+          ub.date_added,
+          ub.date_read,
+          ub.review_id,
+          r.body as review,
+          (
+            SELECT array_agg(DISTINCT g.name ORDER BY g.name)
+            FROM genres g
+            JOIN book_genres bg ON g.id = bg.genre_id
+            WHERE bg.book_id = b.id
+          ) as genres,
+          l.name as language,
+          rt.value as user_rating
+        FROM books b
+        INNER JOIN user_books ub ON b.id = ub.book_id
+        LEFT JOIN reviews r ON ub.review_id = r.id
+        LEFT JOIN languages l ON b.language_id = l.id
+        LEFT JOIN ratings rt ON b.id = rt.book_id AND rt.user_id = ub.user_id
+        WHERE ub.user_id = $1 AND ub.shelf = $2
+      `;
+      
+      queryParams = [userId, shelf];
+      
+      countQuery = `
+        SELECT COUNT(*) as total
+        FROM user_books ub
+        WHERE ub.user_id = $1 AND ub.shelf = $2
+      `;
+      countParams = [userId, shelf];
+    }
+
+    // Add sorting
+    const validSortFields = ['date_added', 'date_read', 'title', 'author', 'rating'];
+    const sortField = validSortFields.includes(sort) ? sort : 'date_added';
+    const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
+    
+    if (sortField === 'rating') {
+      query += ` ORDER BY rt.value ${sortOrder}, b.average_rating ${sortOrder}`;
+    } else if (sortField === 'title') {
+      query += ` ORDER BY b.title ${sortOrder}`;
+    } else if (sortField === 'author') {
+      query += ` ORDER BY (SELECT a.name FROM authors a 
+                    JOIN book_authors ba ON a.id = ba.author_id 
+                    WHERE ba.book_id = b.id 
+                    ORDER BY a.id ASC LIMIT 1) ${sortOrder}`;
+    } else {
+      query += ` ORDER BY COALESCE(ub.${sortField}, rt.created_at) ${sortOrder}`;
+    }
+
+    // Add pagination
+    queryParams.push(parseInt(limit));
+    query += ` LIMIT $${queryParams.length}`;
+    
+    queryParams.push(offset);
+    query += ` OFFSET $${queryParams.length}`;
+
+    const books = await pool.query(query, queryParams);
+    const countResult = await pool.query(countQuery, countParams);
+    const totalBooks = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      books: books.rows,
+      totalBooks,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalBooks / limit),
+      hasNextPage: page * limit < totalBooks,
+      hasPrevPage: page > 1
+    });
+
+  } catch (error) {
+    console.error('Error fetching user books:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching books' 
+    });
+  }
+});
+
+// Get public user's reading statistics
+router.get('/user/:userId/stats', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check if user exists and is active
+    const userCheck = await pool.query(
+      'SELECT id FROM users WHERE id = $1 AND is_active = true',
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or account is deactivated'
+      });
+    }
+    
+    // Use stored procedures to get comprehensive stats
+    const stats = await StoredProcedures.getUserReadingStats(userId);
+    const monthlyStats = await StoredProcedures.getMonthlyActivity(userId);
+    const genreStats = await StoredProcedures.getGenreStats(userId);
+    const authorStats = await StoredProcedures.getAuthorStats(userId);
+    const bookLengthStats = await StoredProcedures.getBookLengthStats(userId);
+    const ratingDistribution = await StoredProcedures.getRatingDistribution(userId);
+    
+    // Convert rating distribution to object format
+    const ratingDistObj = {};
+    for (let i = 1; i <= 5; i++) {
+      ratingDistObj[i] = 0;
+    }
+    ratingDistribution.forEach(row => {
+      ratingDistObj[row.rating] = parseInt(row.count);
+    });
+
+    res.json({
+      success: true,
+      stats: stats,
+      monthlyStats: monthlyStats,
+      genreStats: genreStats,
+      authorStats: authorStats,
+      bookLengthStats: bookLengthStats,
+      ratingDistribution: ratingDistObj
+    });
+  } catch (error) {
+    console.error('Error fetching reading stats:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching reading statistics' 
+    });
+  }
+});
+
 module.exports = router;
