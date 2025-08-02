@@ -291,3 +291,4 @@ If you encounter any issues or have questions:
 **Happy Reading with Litloom! 📚✨**
 
 *Discover your next favorite book and connect with fellow readers in our growing community.*
+*Feel free to contact us about any queries*
