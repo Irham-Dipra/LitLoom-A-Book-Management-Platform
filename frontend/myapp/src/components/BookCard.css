@@ -71,9 +71,9 @@
 }
 
 .book-title {
-  font-size: 0.65rem !important;
+  font-size: 1.1rem !important;
   font-weight: bold;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.8rem; /* Increased from 0.3rem to 0.8rem for more gap */
   line-height: 1.1;
   display: -webkit-box;
   -webkit-line-clamp: 4;
@@ -82,11 +82,13 @@
   text-overflow: ellipsis;
   height: 2.9em;
   max-height: 2.9em;
+  color: #ffd700; /* Yellow color for title highlighting */
 }
 
 .book-author {
-  font-size: 0.55rem;
-  color: #ccc;
+  font-size: 0.9rem;
+  color: white; /* Changed from #ccc to white */
+  font-weight: bold; /* Made author name bold */
   margin-bottom: 0.6rem;
   line-height: 1.0;
 }
@@ -96,6 +98,7 @@
   cursor: pointer;
   text-decoration: underline;
   transition: color 0.2s;
+  font-weight: bold; /* Maintain bold for clickable authors */
 }
 
 .book-author.clickable:hover {

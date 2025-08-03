@@ -104,6 +104,7 @@ function SearchResults() {
               title: author.name,
               description: author.bio || 'No biography available',
               author_image: author.author_image || null,
+              first_book_cover: author.first_book_cover || null,
               type: 'author'
             }));
             newSections.push({ 
@@ -118,6 +119,7 @@ function SearchResults() {
               id: `character-${char.id}`,
               title: char.name,
               description: char.description || 'No description available',
+              first_book_cover: char.first_book_cover || null,
               type: 'character'
             }));
             newSections.push({ 
@@ -216,6 +218,7 @@ function SearchResults() {
             title: author.name,
             description: author.bio || 'No biography available',
             author_image: author.author_image || null,
+            first_book_cover: author.first_book_cover || null,
             type: 'author'
           }));
           newSections.push({ 
@@ -230,6 +233,7 @@ function SearchResults() {
             id: `character-${char.id}`,
             title: char.name,
             description: char.description || 'No description available',
+            first_book_cover: char.first_book_cover || null,
             type: 'character'
           }));
           newSections.push({ 

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaUser } from 'react-icons/fa';
 import './AuthorCard.css';
 
-function AuthorCard({ id, name, bio, authorImage, onClick }) {
+function AuthorCard({ id, name, bio, authorImage, firstBookCover, onClick }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -27,15 +27,21 @@ function AuthorCard({ id, name, bio, authorImage, onClick }) {
     <div className="author-card" onClick={handleClick}>
       <div className="author-profile-section">
         <div className="author-avatar">
-          {authorImage ? (
+          {authorImage || firstBookCover ? (
             <>
               <img 
-                src={authorImage} 
+                src={authorImage || firstBookCover} 
                 alt={name}
                 className="author-avatar-img"
                 onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  // If primary image fails and we have a fallback, try the fallback
+                  if (authorImage && firstBookCover && e.target.src === authorImage) {
+                    e.target.src = firstBookCover;
+                  } else {
+                    // If all images fail, hide the img and show placeholder
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }
                 }}
               />
               <div className="author-avatar-fallback" style={{ display: 'none' }}>

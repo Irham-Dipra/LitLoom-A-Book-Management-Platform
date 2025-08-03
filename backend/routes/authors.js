@@ -23,15 +23,24 @@ router.get('/:id', async (req, res) => {
       }
     }
 
-    // Get author details
+    // Get author details with first book cover as fallback
     const authorQuery = `
       SELECT 
-        id,
-        name,
-        bio,
-        author_image
-      FROM authors 
-      WHERE id = $1
+        a.id,
+        a.name,
+        a.bio,
+        a.author_image,
+        (
+          SELECT b.cover_image 
+          FROM books b 
+          JOIN book_authors ba ON b.id = ba.book_id 
+          WHERE ba.author_id = a.id 
+          AND b.cover_image IS NOT NULL 
+          ORDER BY b.publication_date ASC, b.id ASC
+          LIMIT 1
+        ) as first_book_cover
+      FROM authors a
+      WHERE a.id = $1
     `;
     
     const authorResult = await pool.query(authorQuery, [id]);

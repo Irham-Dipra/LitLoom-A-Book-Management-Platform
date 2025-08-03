@@ -180,14 +180,23 @@ router.get('/', async (req, res) => {
 
       // Search Authors
       const authorQuery = `
-        SELECT id, name, bio, author_image,
-               POSITION(LOWER($2) IN LOWER(name)) as match_position
-        FROM authors
-        WHERE LOWER(name) LIKE $1
+        SELECT a.id, a.name, a.bio, a.author_image,
+               POSITION(LOWER($2) IN LOWER(a.name)) as match_position,
+               (
+                 SELECT b.cover_image 
+                 FROM books b 
+                 JOIN book_authors ba ON b.id = ba.book_id 
+                 WHERE ba.author_id = a.id 
+                 AND b.cover_image IS NOT NULL 
+                 ORDER BY b.id ASC 
+                 LIMIT 1
+               ) as first_book_cover
+        FROM authors a
+        WHERE LOWER(a.name) LIKE $1
         ORDER BY 
-          CASE WHEN POSITION(LOWER($2) IN LOWER(name)) = 1 THEN 0 ELSE 1 END,
-          POSITION(LOWER($2) IN LOWER(name)),
-          name ASC
+          CASE WHEN POSITION(LOWER($2) IN LOWER(a.name)) = 1 THEN 0 ELSE 1 END,
+          POSITION(LOWER($2) IN LOWER(a.name)),
+          a.name ASC
         LIMIT 20;
       `;
       const authorsResult = await pool.query(authorQuery, [keyword, q.trim().toLowerCase()]);
@@ -195,14 +204,23 @@ router.get('/', async (req, res) => {
 
       // Search Characters - FIXED: table name
       const characterQuery = `
-        SELECT id, name, biography as description,
-               POSITION(LOWER($2) IN LOWER(name)) as match_position
-        FROM characters
-        WHERE LOWER(name) LIKE $1
+        SELECT c.id, c.name, c.biography as description,
+               POSITION(LOWER($2) IN LOWER(c.name)) as match_position,
+               (
+                 SELECT b.cover_image 
+                 FROM books b 
+                 JOIN book_character_appearances bca ON b.id = bca.book_id 
+                 WHERE bca.character_id = c.id 
+                 AND b.cover_image IS NOT NULL 
+                 ORDER BY b.id ASC 
+                 LIMIT 1
+               ) as first_book_cover
+        FROM characters c
+        WHERE LOWER(c.name) LIKE $1
         ORDER BY 
-          CASE WHEN POSITION(LOWER($2) IN LOWER(name)) = 1 THEN 0 ELSE 1 END,
-          POSITION(LOWER($2) IN LOWER(name)),
-          name ASC
+          CASE WHEN POSITION(LOWER($2) IN LOWER(c.name)) = 1 THEN 0 ELSE 1 END,
+          POSITION(LOWER($2) IN LOWER(c.name)),
+          c.name ASC
         LIMIT 20;
       `;
       const charactersResult = await pool.query(characterQuery, [keyword, q.trim().toLowerCase()]);

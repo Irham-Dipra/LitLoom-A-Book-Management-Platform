@@ -46,10 +46,14 @@ function SearchResultsScroll({ title, items, type }) {
               <div 
                 className="author-avatar"
                 style={{
-                  backgroundImage: item.author_image ? `url(${item.author_image})` : undefined,
+                  backgroundImage: item.author_image 
+                    ? `url(${item.author_image})` 
+                    : item.first_book_cover 
+                      ? `url(${item.first_book_cover})`
+                      : undefined,
                 }}
               >
-                {!item.author_image && <FaUser style={{ fontSize: '3.5rem', color: 'rgba(255,255,255,0.6)' }} />}
+                {!item.author_image && !item.first_book_cover && <FaUser style={{ fontSize: '3.5rem', color: 'rgba(255,255,255,0.6)' }} />}
               </div>
               <div className="author-name-profile">
                 {item.title}
@@ -72,8 +76,15 @@ function SearchResultsScroll({ title, items, type }) {
               className="character-profile"
               onClick={() => handleCharacterClick(item.id.replace('character-', ''))}
             >
-              <div className="character-avatar">
-                <FaUser />
+              <div 
+                className="character-avatar"
+                style={{
+                  backgroundImage: item.first_book_cover 
+                    ? `url(${item.first_book_cover})`
+                    : undefined,
+                }}
+              >
+                {!item.first_book_cover && <FaUser />}
               </div>
               <div className="character-name-profile">
                 {item.title}

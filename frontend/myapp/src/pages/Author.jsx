@@ -122,14 +122,35 @@ function Author() {
       <div className="author-content">
         <div className="author-header">
           <div className="author-image-container">
-            <img 
-              src={author.author_image || '/default-author.jpg'} 
-              alt={author.name}
-              className="author-image"
-              onError={(e) => {
-                e.target.src = '/default-author.jpg';
-              }}
-            />
+            {author.author_image || author.first_book_cover ? (
+              <img 
+                src={author.author_image || author.first_book_cover} 
+                alt={author.name}
+                className="author-image"
+                onError={(e) => {
+                  // If primary image fails and we have a fallback, try the fallback
+                  if (author.author_image && author.first_book_cover && e.target.src === author.author_image) {
+                    e.target.src = author.first_book_cover;
+                  } else {
+                    // If all images fail, hide the img and show placeholder
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            {(!author.author_image && !author.first_book_cover) && (
+              <div className="author-image-placeholder">
+                <span className="author-initials">
+                  {author.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div className="author-image-placeholder" style={{ display: 'none' }}>
+              <span className="author-initials">
+                {author.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+              </span>
+            </div>
           </div>
           
           <div className="author-info">
