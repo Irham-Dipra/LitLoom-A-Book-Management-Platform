@@ -189,31 +189,24 @@ router.get('/all', async (req, res) => {
       }
     }
 
-    const result = await pool.query(`
+    // In the GET /all endpoint, update the query to include cover_image
+    const query = `
       SELECT 
-        r.id, 
-        r.book_id, 
-        r.user_id, 
-        r.title, 
-        r.body, 
-        r.rating, 
-        r.created_at, 
-        r.updated_at,
-        r.upvotes,
-        r.downvotes,
-        u.username as user_name,
-        u.first_name,
-        u.last_name,
-        u.profile_picture_url,
-        b.title as book_title,
-        a.name as author_name
+        r.id, r.title, r.body, r.rating, r.created_at, r.upvotes, r.downvotes,
+        b.id as book_id, b.title as book_title, b.cover_image,
+        a.name as author_name,
+        u.id as user_id, u.username as user_name, u.first_name, u.last_name, u.profile_picture_url,
+        ${currentUserId ? 'v.vote_type as user_vote' : 'NULL as user_vote'}
       FROM reviews r
-      JOIN users u ON r.user_id = u.id
       JOIN books b ON r.book_id = b.id
       JOIN book_authors ba ON b.id = ba.book_id
       JOIN authors a ON ba.author_id = a.id
+      JOIN users u ON r.user_id = u.id
+      ${currentUserId ? 'LEFT JOIN votes v ON r.id = v.review_id AND v.user_id = $1' : ''}
       ORDER BY r.created_at DESC
-    `);
+    `;
+
+    const result = await pool.query(query, currentUserId ? [currentUserId] : []);
 
     // Get comments and user votes for each review
     const reviewsWithComments = await Promise.all(

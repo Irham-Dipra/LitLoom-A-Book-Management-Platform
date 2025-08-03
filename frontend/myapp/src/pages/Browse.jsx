@@ -448,9 +448,35 @@ function Browse() {
           <div className="reviews-grid">
             {reviews.map((review) => (
               <div key={review.id} className="review-card">
-                <div className="review-header">
-                  <div className="review-user">
-                    <div className="user-avatar">
+                {/* Review Title at the top */}
+                <div className="review-content-header">
+                  <h5 className="review-title">{review.title}</h5>
+                </div>
+
+                {/* Book Info Section */}
+                <div className="review-book-header">
+                  <img 
+                    src={review.cover_image || '/default-book-cover.jpg'} 
+                    alt={review.book_title}
+                    className="book-cover-mini"
+                    onClick={() => navigate(`/book/${review.book_id}`)}
+                  />
+                  <div className="review-book-info">
+                    <h4 className="book-title" onClick={() => navigate(`/book/${review.book_id}`)}>
+                      {review.book_title}
+                    </h4>
+                    <p className="book-author">by {review.author_name || 'Unknown Author'}</p>
+                    <div className="review-rating">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar 
+                          key={star} 
+                          className={`star ${star <= review.rating ? 'filled' : 'empty'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="reviewer-section">
+                    <div className="reviewer-avatar">
                       {review.profile_picture_url ? (
                         <img src={review.profile_picture_url} alt="Profile" />
                       ) : (
@@ -459,39 +485,27 @@ function Browse() {
                         </div>
                       )}
                     </div>
-                    <div className="user-info">
-                      <h3 
-                        className="user-name clickable-username" 
+                    <div className="reviewer-info-right">
+                      <span className="reviewer-by-text">by</span>
+                      <span 
+                        className="reviewer-name clickable-username" 
                         onClick={() => handleUserClick(review.user_id)}
                       >
                         {getDisplayName(review)}
-                      </h3>
-                      <p className="review-date">{formatDate(review.created_at)}</p>
+                      </span>
+                      <div className="review-date">
+                        {formatDate(review.created_at)}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="review-rating">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FaStar 
-                        key={star} 
-                        className={`star ${star <= review.rating ? 'filled' : 'empty'}`}
-                      />
-                    ))}
-                  </div>
                 </div>
 
-                <div className="review-book-info">
-                  <h4 className="book-title" onClick={() => navigate(`/book/${review.book_id}`)}>
-                    {review.book_title}
-                  </h4>
-                  <p className="book-author">by {review.author_name || 'Unknown Author'}</p>
-                </div>
-
+                {/* Review Content */}
                 <div className="review-content">
-                  <h5 className="review-title">{review.title}</h5>
                   <p className="review-text">{review.body}</p>
                 </div>
 
+                {/* Review Actions */}
                 <div className="review-actions">
                   <div className="vote-section">
                     <button 
@@ -522,6 +536,7 @@ function Browse() {
                   </button>
                 </div>
 
+                {/* Comments Section - unchanged */}
                 {expandedComments[review.id] && (
                   <div className="comments-section">
                     <div className="comments-list">
