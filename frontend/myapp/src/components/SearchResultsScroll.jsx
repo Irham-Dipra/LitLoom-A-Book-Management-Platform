@@ -27,6 +27,30 @@ function SearchResultsScroll({ title, items, type }) {
     console.log('Character clicked:', characterId);
   };
 
+  const handleUserClick = (userId) => {
+    navigate(`/profile/${userId}`);
+  };
+
+  const getUserDisplayName = (user) => {
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    } else if (user.first_name) {
+      return user.first_name;
+    }
+    return user.username;
+  };
+
+  const getUserInitials = (user) => {
+    if (user.first_name && user.last_name) {
+      return `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
+    } else if (user.first_name) {
+      return user.first_name.charAt(0).toUpperCase();
+    } else if (user.username) {
+      return user.username.charAt(0).toUpperCase();
+    }
+    return '👤';
+  };
+
   const renderItem = (item, idx) => {
     switch (type) {
       case 'authors':
@@ -89,6 +113,41 @@ function SearchResultsScroll({ title, items, type }) {
               <div className="character-name-profile">
                 {item.title}
               </div>
+            </div>
+          </div>
+        );
+
+      case 'users':
+        return (
+          <div 
+            key={item.id}
+            style={{ 
+              flex: '0 0 auto',
+              width: '160px',
+              display: 'inline-block'
+            }}
+          >
+            <div 
+              className="user-profile"
+              onClick={() => handleUserClick(item.id.replace('user-', ''))}
+            >
+              <div 
+                className="user-avatar"
+                style={{
+                  backgroundImage: item.profile_picture_url 
+                    ? `url(${item.profile_picture_url})`
+                    : undefined,
+                }}
+              >
+                {!item.profile_picture_url && (
+                  <div className="user-initials">{item.initials}</div>
+                )}
+              </div>
+              <div className="user-name-profile">
+                {item.display_name}
+                {item.is_moderator && <span className="mod-badge">MOD</span>}
+              </div>
+              <div className="user-username">@{item.username}</div>
             </div>
           </div>
         );

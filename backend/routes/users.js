@@ -152,4 +152,40 @@ router.get('/:userId/public', async (req, res) => {
   }
 });
 
+// GET /users/:userId/stats/public - Get public user stats for profile page
+router.get('/:userId/stats/public', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const stats = await pool.query(`
+      SELECT 
+        u.id, u.username,
+        (SELECT COUNT(*) FROM posts p WHERE p.user_id = u.id AND p.is_active = true) AS post_count,
+        (SELECT COUNT(*) FROM followers f WHERE f.following_id = u.id) AS follower_count,
+        (SELECT COUNT(*) FROM followers f WHERE f.user_id = u.id) AS following_count
+      FROM users u
+      WHERE u.id = $1 AND u.is_active = true`,
+      [userId]
+    );
+
+    if (stats.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or account is deactivated'
+      });
+    }
+
+    res.json({
+      success: true,
+      stats: stats.rows[0]
+    });
+  } catch (error) {
+    console.error('Error fetching public stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching stats'
+    });
+  }
+});
+
 module.exports = router;

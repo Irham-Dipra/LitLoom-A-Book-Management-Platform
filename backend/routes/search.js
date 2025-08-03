@@ -226,6 +226,37 @@ router.get('/', async (req, res) => {
       const charactersResult = await pool.query(characterQuery, [keyword, q.trim().toLowerCase()]);
       if (charactersResult.rows.length > 0) data.characters = charactersResult.rows;
 
+      // Search Users
+      const userQuery = `
+        SELECT u.id, u.username, u.first_name, u.last_name, u.bio, 
+               u.profile_picture_url, u.created_at,
+               POSITION(LOWER($2) IN LOWER(u.username)) as username_match_position,
+               POSITION(LOWER($2) IN LOWER(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))) as name_match_position,
+               EXISTS(SELECT 1 FROM moderator_accounts m WHERE m.user_id = u.id) AS is_moderator
+        FROM users u
+        WHERE u.is_active = true 
+        AND (
+          LOWER(u.username) LIKE $1 
+          OR LOWER(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) LIKE $1
+          OR LOWER(COALESCE(u.first_name, '')) LIKE $1
+          OR LOWER(COALESCE(u.last_name, '')) LIKE $1
+        )
+        ORDER BY 
+          CASE 
+            WHEN POSITION(LOWER($2) IN LOWER(u.username)) = 1 THEN 0 
+            WHEN POSITION(LOWER($2) IN LOWER(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))) = 1 THEN 1
+            ELSE 2 
+          END,
+          LEAST(
+            COALESCE(POSITION(LOWER($2) IN LOWER(u.username)), 999),
+            COALESCE(POSITION(LOWER($2) IN LOWER(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')))), 999)
+          ),
+          u.username ASC
+        LIMIT 20;
+      `;
+      const usersResult = await pool.query(userQuery, [keyword, q.trim().toLowerCase()]);
+      if (usersResult.rows.length > 0) data.users = usersResult.rows;
+
       // Track text search
       await trackSearch(req, 'text_search', q.trim(), null, data);
 

@@ -128,6 +128,24 @@ function SearchResults() {
               type: 'characters'
             });
           }
+
+          if (data.data.users && data.data.users.length > 0) {
+            const userItems = data.data.users.map(user => ({
+              id: `user-${user.id}`,
+              title: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name || user.username,
+              display_name: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name || user.username,
+              username: user.username,
+              profile_picture_url: user.profile_picture_url || null,
+              initials: user.first_name && user.last_name ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase() : user.first_name ? user.first_name.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase(),
+              is_moderator: user.is_moderator,
+              type: 'user'
+            }));
+            newSections.push({ 
+              title: `Users matching "${searchParams.textQuery}"`, 
+              items: userItems,
+              type: 'users'
+            });
+          }
         }
 
         setSections(newSections);
@@ -240,6 +258,24 @@ function SearchResults() {
             title: `Characters matching "${searchTerm}"`, 
             items: characterItems,
             type: 'characters'
+          });
+        }
+
+        if (data.data.users && data.data.users.length > 0) {
+          const userItems = data.data.users.map(user => ({
+            id: `user-${user.id}`,
+            title: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name || user.username,
+            display_name: user.first_name && user.last_name ? `${user.first_name} ${user.last_name}` : user.first_name || user.username,
+            username: user.username,
+            profile_picture_url: user.profile_picture_url || null,
+            initials: user.first_name && user.last_name ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase() : user.first_name ? user.first_name.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase(),
+            is_moderator: user.is_moderator,
+            type: 'user'
+          }));
+          newSections.push({ 
+            title: `Users matching "${searchTerm}"`, 
+            items: userItems,
+            type: 'users'
           });
         }
 
