@@ -433,6 +433,7 @@ const handleRatingChange = async (rating) => {
         <div
           className={`book-author ${authorId ? 'clickable' : ''}`}
           onClick={authorId ? handleAuthorClick : undefined}
+          style={undefined} // Remove any inline styles
         >
           {author}
         </div>

@@ -72,38 +72,62 @@
 
 .book-title {
   font-size: 1.1rem !important;
-  font-weight: bold;
-  margin-bottom: 0.8rem; /* Increased from 0.3rem to 0.8rem for more gap */
-  line-height: 1.1;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  height: 2.9em;
-  max-height: 2.9em;
-  color: #ffd700; /* Yellow color for title highlighting */
+  font-weight: bold !important;
+  margin-bottom: 0.8rem !important; /* Increased from 0.3rem to 0.8rem for more gap */
+  line-height: 1.1 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 4 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  height: 2.9em !important;
+  max-height: 2.9em !important;
+  color: white !important; /* Changed back to white */
+}
+
+.book-card .book-title,
+.book-card .book-details .book-title {
+  color: white !important; /* More specific selectors */
 }
 
 .book-author {
-  font-size: 0.9rem;
-  color: white; /* Changed from #ccc to white */
-  font-weight: bold; /* Made author name bold */
-  margin-bottom: 0.6rem;
-  line-height: 1.0;
+  font-size: 0.9rem !important;
+  color: white !important;
+  font-weight: bold !important;
+  margin-bottom: 0.6rem !important;
+  line-height: 1.0 !important;
+}
+
+.book-card .book-author,
+.book-card .book-details .book-author {
+  color: white !important; /* More specific selectors */
+  font-weight: bold !important;
 }
 
 .book-author.clickable {
-  color: #3498db;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.2s;
-  font-weight: bold; /* Maintain bold for clickable authors */
+  color: #3498db !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: color 0.2s !important;
+  font-weight: bold !important;
+}
+
+.book-card .book-author.clickable,
+.book-card .book-details .book-author.clickable {
+  color: #3498db !important;
+  font-weight: bold !important;
+  text-decoration: none !important;
 }
 
 .book-author.clickable:hover {
-  color: #2980b9;
-  text-decoration: none;
+  color: #2980b9 !important;
+  text-decoration: none !important;
+}
+
+.book-card .book-author.clickable:hover,
+.book-card .book-details .book-author.clickable:hover {
+  color: #2980b9 !important;
+  text-decoration: none !important;
 }
 
 .book-actions {
