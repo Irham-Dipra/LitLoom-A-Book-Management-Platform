@@ -137,6 +137,9 @@ function SearchResultsScroll({ title, items, type }) {
                   backgroundImage: item.profile_picture_url 
                     ? `url(${item.profile_picture_url})`
                     : undefined,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
                 }}
               >
                 {!item.profile_picture_url && (

@@ -361,6 +361,26 @@ function Browse() {
     return review.user_name || 'Anonymous';
   };
 
+  const getCommentDisplayName = (comment) => {
+    if (comment.first_name && comment.last_name) {
+      return `${comment.first_name} ${comment.last_name}`;
+    } else if (comment.first_name) {
+      return comment.first_name;
+    }
+    return comment.user_name || 'Anonymous';
+  };
+
+  const getCommentInitials = (comment) => {
+    if (comment.first_name && comment.last_name) {
+      return `${comment.first_name.charAt(0)}${comment.last_name.charAt(0)}`.toUpperCase();
+    } else if (comment.first_name) {
+      return comment.first_name.charAt(0).toUpperCase();
+    } else if (comment.user_name) {
+      return comment.user_name.charAt(0).toUpperCase();
+    }
+    return '?';
+  };
+
   const getUserInitials = (review) => {
     if (review.first_name && review.last_name) {
       return `${review.first_name.charAt(0)}${review.last_name.charAt(0)}`.toUpperCase();
@@ -552,7 +572,7 @@ function Browse() {
                                   <img src={comment.profile_picture_url} alt="Profile" />
                                 ) : (
                                   <div className="avatar-placeholder">
-                                    {comment.user_name?.charAt(0)?.toUpperCase() || '?'}
+                                    {getCommentInitials(comment)}
                                   </div>
                                 )}
                               </div>
@@ -561,7 +581,7 @@ function Browse() {
                                   className="comment-user-name clickable-username"
                                   onClick={() => handleUserClick(comment.user_id)}
                                 >
-                                  {comment.user_name}
+                                  {getCommentDisplayName(comment)}
                                 </span>
                                 <span className="comment-date">{formatDate(comment.created_at)}</span>
                               </div>
@@ -615,7 +635,7 @@ function Browse() {
                                               <img src={reply.profile_picture_url} alt="Profile" />
                                             ) : (
                                               <div className="avatar-placeholder">
-                                                {reply.user_name?.charAt(0)?.toUpperCase() || '?'}
+                                                {getCommentInitials(reply)}
                                               </div>
                                             )}
                                           </div>
@@ -624,7 +644,7 @@ function Browse() {
                                               className="comment-user-name clickable-username"
                                               onClick={() => handleUserClick(reply.user_id)}
                                             >
-                                              {reply.user_name}
+                                              {getCommentDisplayName(reply)}
                                             </span>
                                             <span className="comment-date">{formatDate(reply.created_at)}</span>
                                           </div>

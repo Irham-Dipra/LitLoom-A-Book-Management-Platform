@@ -207,6 +207,7 @@
   background: linear-gradient(135deg, #4cc9f0, #7209b7, #2c5364);
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
   margin-bottom: 0.3rem;
   flex-shrink: 0;
   display: flex;
@@ -215,23 +216,35 @@
   border: 4px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   position: relative;
+  overflow: hidden;
 }
 
-.user-initials {
-  font-size: 3rem;
+/* Ensure initials are only shown when no profile picture */
+.user-avatar .user-initials {
+  font-size: 3.5rem; /* Increased from 3rem to 3.5rem to match author icon size */
   font-weight: bold;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide initials when background image is present */
+.user-avatar[style*="background-image"] .user-initials {
+  display: none;
 }
 
 .user-name-profile {
-  font-size: 0.9rem;
+  font-size: 0.9rem; /* Same as author-name-profile */
   font-weight: 600;
   color: white;
   text-align: center;
   line-height: 1.3;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2; /* Changed from 1 to 2 to match author name clamp */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -324,7 +337,7 @@
   }
   
   .user-initials {
-    font-size: 2rem;
+    font-size: 2.5rem; /* Increased from 2rem to 2.5rem to match responsive author size */
   }
   
   .author-name-profile,
@@ -378,7 +391,7 @@
   }
   
   .user-initials {
-    font-size: 1.5rem;
+    font-size: 2rem; /* Increased from 1.5rem to 2rem to maintain proportions */
   }
   
   .author-name-profile,
