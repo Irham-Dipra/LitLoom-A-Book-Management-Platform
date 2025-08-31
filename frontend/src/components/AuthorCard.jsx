@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUser } from 'react-icons/fa';
 import './AuthorCard.css';
-import API_URL from '../config/api';
 
 function AuthorCard({ id, name, bio, authorImage, firstBookCover, onClick }) {
   const navigate = useNavigate();
