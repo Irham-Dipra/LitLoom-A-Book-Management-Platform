@@ -30,7 +30,7 @@ const Wishlist = () => {
       for (const endpoint of endpoints) {
         try {
           console.log(`Trying wishlist endpoint: ${endpoint}`);
-          response = await fetch(`${API_URL}/wishlist`, {
+          response = await fetch(`${API_URL}${endpoint}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,

@@ -156,7 +156,7 @@ const AddBook = () => {
   const rollbackSession = async () => {
     if (!sessionId) return;
     try {
-      await fetch('${API_URL}/addBook/rollback-session', {
+      await fetch(`${API_URL}/addBook/rollback-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId })
@@ -181,7 +181,7 @@ const AddBook = () => {
     try {
       const url = search ? 
         `${API_URL}/addBook/genres?search=${encodeURIComponent(search)}` :
-        '${API_URL}/addBook/genres';
+        `${API_URL}/addBook/genres`;
       
       console.log('Fetching genres from:', url); // Debug log
       
@@ -216,7 +216,7 @@ const AddBook = () => {
     try {
       const url = search ? 
         `${API_URL}/addBook/languages?search=${encodeURIComponent(search)}` :
-        '${API_URL}/addBook/languages';
+        `${API_URL}/addBook/languages`;
       const response = await fetch(url);
       const data = await response.json();
       setLanguages(data);
@@ -229,7 +229,7 @@ const AddBook = () => {
     try {
       const url = search ? 
         `${API_URL}/addBook/publication_houses?search=${encodeURIComponent(search)}` :
-        '${API_URL}/addBook/publication_houses';
+        `${API_URL}/addBook/publication_houses`;
       const response = await fetch(url);
       const data = await response.json();
       setPublications(data);
@@ -242,7 +242,7 @@ const AddBook = () => {
     try {
       const url = search ? 
         `${API_URL}/addBook/authors?search=${encodeURIComponent(search)}` :
-        '${API_URL}/addBook/authors';
+        `${API_URL}/addBook/authors`;
       const response = await fetch(url);
       const data = await response.json();
       setAuthors(data);
@@ -293,7 +293,7 @@ const AddBook = () => {
     
     try {
       console.log('Adding genre:', { name: newGenre, sessionId }); // Debug log
-      const response = await fetch('${API_URL}/addBook/genres', {
+      const response = await fetch(`${API_URL}/addBook/genres`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newGenre, sessionId })
@@ -335,7 +335,7 @@ const AddBook = () => {
     
     try {
       console.log('Adding language:', { ...newLanguage, sessionId }); // Debug log
-      const response = await fetch('${API_URL}/addBook/languages', {
+      const response = await fetch(`${API_URL}/addBook/languages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newLanguage, sessionId })
@@ -373,7 +373,7 @@ const AddBook = () => {
     
     try {
       console.log('Adding publication:', { ...newPublication, sessionId }); // Debug log
-      const response = await fetch('${API_URL}/addBook/publication_houses', {
+      const response = await fetch(`${API_URL}/addBook/publication_houses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newPublication, sessionId })
@@ -411,7 +411,7 @@ const AddBook = () => {
     
     try {
       console.log('Adding author:', { ...newAuthor, sessionId }); // Debug log
-      const response = await fetch('${API_URL}/addBook/authors', {
+      const response = await fetch(`${API_URL}/addBook/authors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newAuthor, sessionId })
@@ -459,7 +459,7 @@ const AddBook = () => {
     };
     
     try {
-      const response = await fetch('${API_URL}/addBook/books', {
+      const response = await fetch(`${API_URL}/addBook/books`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
