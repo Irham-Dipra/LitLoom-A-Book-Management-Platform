@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
 import './Analytics.css';
+import API_URL from '../config/api';
 
 const UserAnalytics = ({ activeTab, onUserClick }) => {
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ const UserAnalytics = ({ activeTab, onUserClick }) => {
           break;
       }
 
-      const response = await fetch(`http://localhost:3000${endpoint}?${params}`, { headers });
+      const response = await fetch(`${API_URL}${endpoint}?${params}`, { headers });
       const result = await response.json();
 
       if (result.success) {

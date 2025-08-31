@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaUser, FaBan, FaCheck, FaCalendarAlt, FaEdit } from 'react-icons/fa';
 import './UserManagement.css';
 import Navbar from './Navbar';
+import API_URL from '../config/api';
 import { FilterProvider } from '../contexts/FilterContext';
 
 const UserManagement = () => {
@@ -38,7 +39,7 @@ const UserManagement = () => {
         'Content-Type': 'application/json'
       };
 
-      const response = await fetch('http://localhost:3000/analytics/user-base-overview', { headers });
+      const response = await fetch(`${API_URL}/analytics/user-base-overview`, { headers });
       const result = await response.json();
 
       if (result.success) {
@@ -117,7 +118,7 @@ const UserManagement = () => {
 
       console.log('Sending request:', { endpoint, body }); // Debug log
 
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body)

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import BookCard from '../components/BookCard';
 import './Author.css';
+import API_URL from '../config/api';
 
 function Author() {
   const { id } = useParams();
@@ -35,7 +36,7 @@ function Author() {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`http://localhost:3000/authors/${id}`, {
+      const response = await fetch(`${API_URL}/authors/${id}`, {
         headers
       });
 
