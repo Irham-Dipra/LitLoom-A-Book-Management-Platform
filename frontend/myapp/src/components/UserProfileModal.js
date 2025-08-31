@@ -1,6 +1,7 @@
 // src/components/UserProfileModal.js
 import React, { useState, useEffect } from 'react';
 import './UserProfileModal.css';
+import API_URL from '../config/api';
 
 const UserProfileModal = ({ userId, onClose }) => {
   const [userProfile, setUserProfile] = useState(null);
@@ -18,7 +19,7 @@ const UserProfileModal = ({ userId, onClose }) => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/analytics/user-activity-profile/${userId}`, {
+      const response = await fetch(`${API_URL}/analytics/user-activity-profile/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

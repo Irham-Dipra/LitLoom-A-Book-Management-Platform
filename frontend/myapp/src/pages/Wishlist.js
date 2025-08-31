@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaStar, FaArrowLeft, FaEye, FaTrash, FaCalendarAlt } from 'react-icons/fa';
+import API_URL from '../config/api';
 import './Wishlist.css';
 
 const Wishlist = () => {
@@ -29,7 +30,7 @@ const Wishlist = () => {
       for (const endpoint of endpoints) {
         try {
           console.log(`Trying wishlist endpoint: ${endpoint}`);
-          response = await fetch(`http://localhost:3000/wishlist`, {
+          response = await fetch(`${API_URL}/wishlist`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -74,7 +75,7 @@ const Wishlist = () => {
     try {
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`http://localhost:3000/wishlist`, {
+      const response = await fetch(`${API_URL}/wishlist`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

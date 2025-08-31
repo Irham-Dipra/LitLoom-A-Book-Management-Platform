@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { FaArrowLeft } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import BookCard from '../components/BookCard';
+import API_URL from '../config/api';
 import './Genre.css';
 
 function Genre() {
@@ -64,7 +65,7 @@ function Genre() {
       }
 
       const response = await fetch(
-        `http://localhost:3000/genres/${id}?page=${currentPage}&limit=20&sort=${sortBy}&order=${sortOrder}`,
+        `${API_URL}/genres/${id}?page=${currentPage}&limit=20&sort=${sortBy}&order=${sortOrder}`,
         { headers }
       );
 

@@ -10,6 +10,7 @@ import UserProfileModal from './UserProfileModal';
 import Navbar from './Navbar';
 import { FilterProvider } from '../contexts/FilterContext';
 import './Analytics.css';
+import API_URL from '../config/api';
 
 const Analytics = () => {
   const navigate = useNavigate();
@@ -98,7 +99,7 @@ const Analytics = () => {
           break;
       }
 
-      const response = await fetch(`http://localhost:3000${endpoint}?${params}`, { headers });
+      const response = await fetch(`${API_URL}${endpoint}?${params}`, { headers });
       const data = await response.json();
 
       // Debug logging for content gaps
@@ -134,7 +135,7 @@ const Analytics = () => {
         'Content-Type': 'application/json'
       };
 
-      const response = await fetch(`http://localhost:3000/analytics/options?type=${type}`, { headers });
+      const response = await fetch(`${API_URL}/analytics/options?type=${type}`, { headers });
       const data = await response.json();
 
       if (data.success) {

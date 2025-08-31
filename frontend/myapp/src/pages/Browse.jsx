@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaThumbsUp, FaThumbsDown, FaStar, FaComment, FaBook, FaUser, FaReply } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
+import API_URL from '../config/api';
 import './Browse.css';
 
 function Browse() {
@@ -45,9 +46,9 @@ function Browse() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      
-      const response = await fetch('http://localhost:3000/reviews/all', { headers });
-      
+
+      const response = await fetch(`${API_URL}/reviews/all`, { headers });
+
       if (!response.ok) {
         throw new Error('Failed to fetch reviews');
       }
@@ -75,7 +76,7 @@ function Browse() {
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3000/reviews/${reviewId}/vote`, {
+      const response = await fetch(`${API_URL}/reviews/${reviewId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ function Browse() {
       setSubmittingComment(prev => ({ ...prev, [reviewId]: true }));
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
-      const response = await fetch(`http://localhost:3000/reviews/${reviewId}/comment`, {
+      const response = await fetch(`${API_URL}/reviews/${reviewId}/comment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +184,7 @@ function Browse() {
 
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:3000/reviews/comments/${commentId}/vote`, {
+      const response = await fetch(`${API_URL}/reviews/comments/${commentId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ function Browse() {
           headers['Authorization'] = `Bearer ${token}`;
         }
         
-        const response = await fetch(`http://localhost:3000/reviews/comments/${commentId}/replies`, { headers });
+        const response = await fetch(`${API_URL}/reviews/comments/${commentId}/replies`, { headers });
         
         if (!response.ok) {
           throw new Error('Failed to fetch replies');
@@ -303,7 +304,7 @@ function Browse() {
         throw new Error('Review not found');
       }
       
-      const response = await fetch(`http://localhost:3000/reviews/${reviewId}/comment`, {
+      const response = await fetch(`${API_URL}/reviews/${reviewId}/comment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

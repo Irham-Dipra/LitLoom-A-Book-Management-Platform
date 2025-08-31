@@ -5,6 +5,7 @@ import SearchResultsScroll from '../components/SearchResultsScroll';
 import SearchBar from '../components/SearchBar';
 import Navbar from '../components/Navbar';
 import './SearchResults.css';
+import API_URL from '../config/api';
 
 function SearchResults() {
   const location = useLocation();
@@ -68,8 +69,8 @@ function SearchResults() {
         apiSearchParams.append('q', searchParams.textQuery);
       }
 
-      const response = await fetch(`http://localhost:3000/search?${apiSearchParams.toString()}`);
-      
+      const response = await fetch(`${API_URL}/search?${apiSearchParams.toString()}`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -211,8 +212,8 @@ function SearchResults() {
       const apiSearchParams = new URLSearchParams();
       apiSearchParams.append('q', searchTerm);
 
-      const response = await fetch(`http://localhost:3000/search?${apiSearchParams.toString()}`);
-      
+      const response = await fetch(`${API_URL}/search?${apiSearchParams.toString()}`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

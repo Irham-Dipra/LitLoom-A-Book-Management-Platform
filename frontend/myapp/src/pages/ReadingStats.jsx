@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBook, FaCalendarAlt, FaStar, FaArrowLeft, FaChartBar, FaBullseye, FaFire, FaUser, FaBookOpen, FaClock, FaTrophy, FaUsers, FaChartPie } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
+import API_URL from '../config/api';
 import './ReadingStats.css';
 
 function ReadingStats() {
@@ -19,7 +20,7 @@ function ReadingStats() {
   const [newGoal, setNewGoal] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     setLoggedIn(!!token);
     
     if (!token) {
@@ -33,8 +34,8 @@ function ReadingStats() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/myBooks/stats', {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const response = await fetch(`${API_URL}/myBooks/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -130,7 +131,7 @@ function ReadingStats() {
   const updateReadingGoal = async (goal) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/myBooks/reading-goal', {
+      const response = await fetch(`${API_URL}/myBooks/reading-goal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

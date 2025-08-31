@@ -3,6 +3,7 @@ import './BookCard.css';
 import { useNavigate } from 'react-router-dom';
 import { FaStar, FaPlus, FaCheck, FaCheckCircle } from 'react-icons/fa';
 import RatingComponent from './RatingComponent';
+import API_URL from '../config/api';
 
 const BookCard = ({
   id,
@@ -64,8 +65,8 @@ const BookCard = ({
   const addToWishlist = async (userId, bookId) => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
-      const response = await fetch('http://localhost:3000/myBooks/books', {
+
+      const response = await fetch(`${API_URL}/myBooks/books`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,8 +93,8 @@ const BookCard = ({
   const removeFromWishlist = async (userId, bookId) => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
-      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+
+      const response = await fetch(`${API_URL}/myBooks/books/${bookId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -148,7 +149,7 @@ const handleRatingChange = async (rating) => {
     const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     
     // Always try to rate directly first
-    let rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+    let rateResponse = await fetch(`${API_URL}/myBooks/books/${id}/rate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ const handleRatingChange = async (rating) => {
         console.log('Book not in library, adding it first...');
         
         // Add book to library first
-        const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+        const addResponse = await fetch(`${API_URL}/myBooks/books`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -193,7 +194,7 @@ const handleRatingChange = async (rating) => {
         }
 
         // Now try rating again
-        rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+        rateResponse = await fetch(`${API_URL}/myBooks/books/${id}/rate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -240,7 +241,7 @@ const handleRatingChange = async (rating) => {
     const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     
     // Add book to library
-    const addResponse = await fetch('http://localhost:3000/myBooks/books', {
+    const addResponse = await fetch(`${API_URL}/myBooks/books`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -266,7 +267,7 @@ const handleRatingChange = async (rating) => {
 
     // If rating was requested, rate the book
     if (rating) {
-      const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
+      const rateResponse = await fetch(`${API_URL}/myBooks/books/${id}/rate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -313,7 +314,7 @@ const handleRatingChange = async (rating) => {
 
       if (currentReadStatus) {
         // Mark unread - remove shelf
-        const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+        const updateResponse = await fetch(`${API_URL}/myBooks/books/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -337,7 +338,7 @@ const handleRatingChange = async (rating) => {
         let response;
 
         if (!isInUserLibrary) {
-          response = await fetch('http://localhost:3000/myBooks/books', {
+          response = await fetch(`${API_URL}/myBooks/books`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -349,7 +350,7 @@ const handleRatingChange = async (rating) => {
             }),
           });
         } else {
-          response = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
+          response = await fetch(`${API_URL}/myBooks/books/${id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -362,7 +363,7 @@ const handleRatingChange = async (rating) => {
         }
 
         if (!response.ok && response.status === 404) {
-          response = await fetch('http://localhost:3000/myBooks/books', {
+          response = await fetch(`${API_URL}/myBooks/books`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

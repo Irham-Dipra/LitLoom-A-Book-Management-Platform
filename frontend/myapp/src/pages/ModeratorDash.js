@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './Moderator.css';
 import Navbar from '../components/Navbar';
 import { FilterProvider } from '../contexts/FilterContext';
+import API_URL from '../config/api';
 
 const ModeratorDash = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const ModeratorDash = () => {
           return;
         }
 
-        const res = await fetch('http://localhost:3000/auth/profile', {
+        const res = await fetch(`${API_URL}/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -43,7 +44,7 @@ const ModeratorDash = () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await fetch('http://localhost:3000/auth/logout', {
+        await fetch(`${API_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

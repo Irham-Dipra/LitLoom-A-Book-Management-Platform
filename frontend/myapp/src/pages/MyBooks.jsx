@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { FaEdit, FaRss } from 'react-icons/fa';
 import RatingComponent from '../components/RatingComponent';
+import API_URL from '../config/api';
 import './MyBooks.css';
 
 function MyBooks() {
@@ -38,8 +39,8 @@ function MyBooks() {
       
       // Use different endpoint for rated books
       const endpoint = selectedShelf === 'rated' 
-        ? `http://localhost:3000/myBooks/rated-books?sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`
-        : `http://localhost:3000/myBooks/books?shelf=${selectedShelf}&sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`;
+        ? `${API_URL}/myBooks/rated-books?sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`
+        : `${API_URL}/myBooks/books?shelf=${selectedShelf}&sort=${sortBy}&order=${sortOrder}&page=${currentPage}&limit=${booksPerPage}`;
       
       const response = await fetch(endpoint, {
         headers: {
@@ -61,7 +62,7 @@ function MyBooks() {
   const fetchShelves = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/myBooks/shelves', {
+      const response = await fetch(`${API_URL}/myBooks/shelves`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -98,7 +99,7 @@ function MyBooks() {
   const handleRatingChange = async (bookId, rating) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}/rate`, {
+      const response = await fetch(`${API_URL}/myBooks/books/${bookId}/rate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ function MyBooks() {
   const handleRatingRemove = async (bookId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}/rating`, {
+      const response = await fetch(`${API_URL}/myBooks/books/${bookId}/rating`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +178,7 @@ function MyBooks() {
       
       if (newShelf === 'untracked') {
         // Delete the book from user's library
-        const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+        const response = await fetch(`${API_URL}/myBooks/books/${bookId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -203,7 +204,7 @@ function MyBooks() {
       }
 
       // Handle regular shelf updates
-      const response = await fetch(`http://localhost:3000/myBooks/books/${bookId}`, {
+      const response = await fetch(`${API_URL}/myBooks/books/${bookId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

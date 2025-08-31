@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './ModeratorBooks.css';
 import Navbar from './Navbar';
 import { FilterProvider } from '../contexts/FilterContext';
+import API_URL from '../config/api';
 
 const ModeratorBooks = () => {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ const ModeratorBooks = () => {
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
 
-      const response = await fetch(`http://localhost:3000/moderator/books?${params}`, {
+      const response = await fetch(`${API_URL}/moderator/books?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,7 +119,7 @@ const ModeratorBooks = () => {
   const fetchFilterOptions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/moderator/filter-options', {
+      const response = await fetch(`${API_URL}/moderator/filter-options`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -193,7 +194,7 @@ const ModeratorBooks = () => {
   const confirmDelete = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/moderator/books/${selectedBook.id}`, {
+      const response = await fetch(`${API_URL}/moderator/books/${selectedBook.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -226,7 +227,7 @@ const ModeratorBooks = () => {
   const confirmEdit = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/moderator/books/${selectedBook.id}`, {
+      const response = await fetch(`${API_URL}/moderator/books/${selectedBook.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

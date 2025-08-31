@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './FilterBar.css';
-
+import API_URL from '../config/api';
 function FilterBar({ filters, setFilters, isOpen, setIsOpen }) {
   const navigate = useNavigate();
   
@@ -37,8 +37,8 @@ function FilterBar({ filters, setFilters, isOpen, setIsOpen }) {
     setOptionsError(null);
     
     try {
-      const response = await fetch('http://localhost:3000/filter-options');
-      
+      const response = await fetch(`${API_URL}/filter-options`);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

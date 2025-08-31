@@ -5,6 +5,7 @@ import './Profile.css';
 import BookCard from '../components/BookCard';
 import Navbar from '../components/Navbar';
 import { FilterProvider } from '../contexts/FilterContext';
+import API_URL from '../config/api';
 import { FaBook, FaCalendarAlt, FaStar, FaChartBar, FaBullseye, FaFire, FaUser, FaBookOpen, FaTrophy, FaChartPie } from 'react-icons/fa';
 
 const Profile = () => {
@@ -38,7 +39,7 @@ const Profile = () => {
 
         if (isPublicProfile) {
           // Fetching public profile
-          const res = await fetch(`http://localhost:3000/users/${userId}/public`);
+          const res = await fetch(`${API_URL}/users/${userId}/public`);
           const data = await res.json();
 
           if (data.success && data.user) {
@@ -61,7 +62,7 @@ const Profile = () => {
             return;
           }
 
-          const res = await fetch('http://localhost:3000/auth/profile', {
+          const res = await fetch(`${API_URL}/auth/profile`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -109,7 +110,7 @@ const Profile = () => {
   const fetchMyBooks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/myBooks/books?limit=6', {
+      const response = await fetch(`${API_URL}/myBooks/books?limit=6`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -125,7 +126,7 @@ const Profile = () => {
 
   const fetchUserBooks = async (targetUserId) => {
     try {
-      const response = await fetch(`http://localhost:3000/myBooks/user/${targetUserId}/books?limit=6`);
+      const response = await fetch(`${API_URL}/myBooks/user/${targetUserId}/books?limit=6`);
       const data = await response.json();
       if (data.success) {
         setMyBooks(data.books);
@@ -138,7 +139,7 @@ const Profile = () => {
   const fetchMyReviews = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/reviews/user', {
+      const response = await fetch(`${API_URL}/reviews/user`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -154,7 +155,7 @@ const Profile = () => {
 
   const fetchUserReviews = async (targetUserId) => {
     try {
-      const response = await fetch(`http://localhost:3000/reviews/user/${targetUserId}`);
+      const response = await fetch(`${API_URL}/reviews/user/${targetUserId}`);
       const data = await response.json();
       if (data.success) {
         setReviews(data.reviews.slice(0, 5));
@@ -167,7 +168,7 @@ const Profile = () => {
   const fetchReadingStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/myBooks/stats', {
+      const response = await fetch(`${API_URL}/myBooks/stats`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -188,7 +189,7 @@ const Profile = () => {
 
   const fetchUserStats = async (targetUserId) => {
     try {
-      const response = await fetch(`http://localhost:3000/myBooks/user/${targetUserId}/stats`);
+      const response = await fetch(`${API_URL}/myBooks/user/${targetUserId}/stats`);
       const data = await response.json();
       if (data.success) {
         setStats(data.stats);
@@ -210,7 +211,7 @@ const Profile = () => {
   const handleSaveProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/users/profile', {
+      const response = await fetch(`${API_URL}/users/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +234,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem('token');
       if (token) {
-        await fetch('http://localhost:3000/auth/logout', {
+        await fetch(`${API_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,

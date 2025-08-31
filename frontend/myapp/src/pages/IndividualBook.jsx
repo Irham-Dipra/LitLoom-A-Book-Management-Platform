@@ -1,504 +1,504 @@
 import React, { useEffect, useState, useRef } from 'react';
-  import { useParams, useNavigate } from 'react-router-dom';
-  import { FaStar, FaCheckCircle, FaPlus, FaCheck, FaBook, FaUser, FaCalendar, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-  import { BiChevronDown } from 'react-icons/bi';
-  import RatingComponent from '../components/RatingComponent';
-  import Navbar from '../components/Navbar';
-  import BookCard from '../components/BookCard';
-  import './IndividualBook.css';
-  import Review from '../components/Review';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FaStar, FaCheckCircle, FaPlus, FaCheck, FaBook, FaUser, FaCalendar, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { BiChevronDown } from 'react-icons/bi';
+import RatingComponent from '../components/RatingComponent';
+import Navbar from '../components/Navbar';
+import BookCard from '../components/BookCard';
+import API_URL from '../config/api';
+import './IndividualBook.css';
+import Review from '../components/Review';
 
-  function IndividualBook() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [book, setBook] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [userRating, setUserRating] = useState(0);
-    const [isRating, setIsRating] = useState(false);
-    const [currentShelf, setCurrentShelf] = useState(null);
-    const [isUpdatingShelf, setIsUpdatingShelf] = useState(false);
-    const [showShelfDropdown, setShowShelfDropdown] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(false);
-    const [userId, setUserId] = useState(null);
+function IndividualBook() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [book, setBook] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userRating, setUserRating] = useState(0);
+  const [isRating, setIsRating] = useState(false);
+  const [currentShelf, setCurrentShelf] = useState(null);
+  const [isUpdatingShelf, setIsUpdatingShelf] = useState(false);
+  const [showShelfDropdown, setShowShelfDropdown] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [userId, setUserId] = useState(null);
 
-    const [reviewTitle, setReviewTitle] = useState('');
-    const [reviewBody, setReviewBody] = useState('');
-    const [reviewRating, setReviewRating] = useState(0);
-    const [reviewMessage, setReviewMessage] = useState(null);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewBody, setReviewBody] = useState('');
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewMessage, setReviewMessage] = useState(null);
 
-    // New state for reviews
-    const [reviews, setReviews] = useState([]);
-    const [reviewsLoading, setReviewsLoading] = useState(true);
-    const [reviewsError, setReviewsError] = useState(null);
+  // New state for reviews
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState(null);
 
-    // Ref for horizontal scrolling
-    const otherBooksScrollRef = useRef(null);
+  // Ref for horizontal scrolling
+  const otherBooksScrollRef = useRef(null);
 
-    // Load book details + login state
-    useEffect(() => {
-      // Check login status using both methods for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const isLoggedInFlag = localStorage.getItem('loggedIn') === 'true';
-      const storedUserId = localStorage.getItem('userId');
+  // Load book details + login state
+  useEffect(() => {
+    // Check login status using both methods for compatibility
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const isLoggedInFlag = localStorage.getItem('loggedIn') === 'true';
+    const storedUserId = localStorage.getItem('userId');
 
-      setLoggedIn(!!token || isLoggedInFlag);
-      setUserId(storedUserId ? parseInt(storedUserId) : null);
+    setLoggedIn(!!token || isLoggedInFlag);
+    setUserId(storedUserId ? parseInt(storedUserId) : null);
 
-      const fetchBook = async () => {
-        try {
-          const headers = {
-            'Content-Type': 'application/json'
-          };
-
-          // Add authorization header if token exists
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          console.log('Fetching book with ID:', id);
-          const res = await fetch(`http://localhost:3000/books/${id}`, { headers });
-          
-          if (!res.ok) {
-            const errorData = await res.json();
-            console.error('API Error:', errorData);
-            throw new Error(errorData.message || `HTTP ${res.status}: Failed to fetch book details`);
-          }
-          
-          const data = await res.json();
-          console.log('Book data received:', data);
-
-          setBook(data);
-          setUserRating(data.user_rating || 0);
-          // Set shelf to 'untracked' if no shelf value or null
-          setCurrentShelf(data.shelf || 'untracked');
-          // Set review rating to existing user rating
-          setReviewRating(data.user_rating || 0);
-        } catch (err) {
-          console.error('Fetch error:', err);
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchBook();
-    }, [id]);
-
-    // Fetch reviews for this book
-    useEffect(() => {
-      const fetchReviews = async () => {
-        try {
-          setReviewsLoading(true);
-          const res = await fetch(`http://localhost:3000/reviews/book/${id}`);
-          if (!res.ok) throw new Error('Failed to fetch reviews');
-          const data = await res.json();
-          setReviews(data);
-        } catch (err) {
-          setReviewsError(err.message);
-        } finally {
-          setReviewsLoading(false);
-        }
-      };
-
-      fetchReviews();
-    }, [id]);
-
-    // Handle hash scrolling to write review section
-    useEffect(() => {
-      if (window.location.hash === '#write-review') {
-        const timer = setTimeout(() => {
-          const element = document.getElementById('write-review');
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 500); // Small delay to ensure the page has loaded
-        
-        return () => clearTimeout(timer);
-      }
-    }, [book]);
-
-    // Submit review
-    const handleReviewSubmit = async (e) => {
-      e.preventDefault();
-      setReviewMessage(null);
-
-      if (!reviewTitle.trim() || !reviewBody.trim()) {
-        setReviewMessage('❌ Title and body are required.');
-        return;
-      }
-
-      if (reviewRating === 0) {
-        setReviewMessage('❌ Please provide a rating (1-5 stars).');
-        return;
-      }
-
-      if (!userId) {
-        setReviewMessage('❌ User not logged in.');
-        return;
-      }
-
+    const fetchBook = async () => {
       try {
-        const currentDateTime = new Date().toISOString();
+        const headers = {
+          'Content-Type': 'application/json'
+        };
 
-        const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:3000/reviews', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            book_id: parseInt(id),
-            title: reviewTitle.trim(),
-            body: reviewBody.trim(),
-            rating: reviewRating,
-            created_at: currentDateTime,
-          }),
-        });
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
 
+        console.log('Fetching book with ID:', id);
+        const res = await fetch(`${API_URL}/books/${id}`, { headers });
+        
         if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message || 'Failed to submit review');
+          const errorData = await res.json();
+          console.error('API Error:', errorData);
+          throw new Error(errorData.message || `HTTP ${res.status}: Failed to fetch book details`);
         }
+        
+        const data = await res.json();
+        console.log('Book data received:', data);
 
-        setReviewMessage('✅ Review submitted successfully!');
-        setReviewTitle('');
-        setReviewBody('');
-        // ✅ Don't reset review rating - keep the existing rating
-
-        // Refresh reviews after successful submission
-        const refreshRes = await fetch(`http://localhost:3000/reviews/book/${id}`);
-        if (refreshRes.ok) {
-          const refreshedReviews = await refreshRes.json();
-          setReviews(refreshedReviews);
-        }
+        setBook(data);
+        setUserRating(data.user_rating || 0);
+        // Set shelf to 'untracked' if no shelf value or null
+        setCurrentShelf(data.shelf || 'untracked');
+        // Set review rating to existing user rating
+        setReviewRating(data.user_rating || 0);
       } catch (err) {
-        setReviewMessage(`❌ ${err.message}`);
+        console.error('Fetch error:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    const isLoggedIn = () => {
+    fetchBook();
+  }, [id]);
+
+  // Fetch reviews for this book
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setReviewsLoading(true);
+        const res = await fetch(`${API_URL}/reviews/book/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch reviews');
+        const data = await res.json();
+        setReviews(data);
+      } catch (err) {
+        setReviewsError(err.message);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [id]);
+
+  // Handle hash scrolling to write review section
+  useEffect(() => {
+    if (window.location.hash === '#write-review') {
+      const timer = setTimeout(() => {
+        const element = document.getElementById('write-review');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500); // Small delay to ensure the page has loaded
+      
+      return () => clearTimeout(timer);
+    }
+  }, [book]);
+
+  // Submit review
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    setReviewMessage(null);
+
+    if (!reviewTitle.trim() || !reviewBody.trim()) {
+      setReviewMessage('❌ Title and body are required.');
+      return;
+    }
+
+    if (reviewRating === 0) {
+      setReviewMessage('❌ Please provide a rating (1-5 stars).');
+      return;
+    }
+
+    if (!userId) {
+      setReviewMessage('❌ User not logged in.');
+      return;
+    }
+
+    try {
+      const currentDateTime = new Date().toISOString();
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          book_id: parseInt(id),
+          title: reviewTitle.trim(),
+          body: reviewBody.trim(),
+          rating: reviewRating,
+          created_at: currentDateTime,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to submit review');
+      }
+
+      setReviewMessage('✅ Review submitted successfully!');
+      setReviewTitle('');
+      setReviewBody('');
+      // ✅ Don't reset review rating - keep the existing rating
+
+      // Refresh reviews after successful submission
+      const refreshRes = await fetch(`${API_URL}/reviews/book/${id}`);
+      if (refreshRes.ok) {
+        const refreshedReviews = await refreshRes.json();
+        setReviews(refreshedReviews);
+      }
+    } catch (err) {
+      setReviewMessage(`❌ ${err.message}`);
+    }
+  };
+
+  const isLoggedIn = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    return token && token.trim() !== '' && token !== 'null';
+  };
+
+  const handleRatingChange = async (rating) => {
+    if (!isLoggedIn()) {
+      navigate('/login');
+      return;
+    }
+
+    setIsRating(true);
+    try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      return token && token.trim() !== '' && token !== 'null';
-    };
 
-    const handleRatingChange = async (rating) => {
-      if (!isLoggedIn()) {
-        navigate('/login');
-        return;
-      }
-
-      setIsRating(true);
-      try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-
-        // ✅ First add book to library if untracked
-        if (currentShelf === 'untracked') {
-          try {
-            await fetch('http://localhost:3000/myBooks/books', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                bookId: id,
-                shelf: 'want-to-read'
-              })
-            });
-            setCurrentShelf('want-to-read');
-          } catch (error) {
-            // It's okay if this fails (book might already be in library)
-            console.log('Book may already be in library');
-          }
+      // ✅ First add book to library if untracked
+      if (currentShelf === 'untracked') {
+        try {
+          await fetch(`${API_URL}/myBooks/books`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              bookId: id,
+              shelf: 'want-to-read'
+            })
+          });
+          setCurrentShelf('want-to-read');
+        } catch (error) {
+          // It's okay if this fails (book might already be in library)
+          console.log('Book may already be in library');
         }
-
-        // ✅ Use the correct rating endpoint
-        const rateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}/rate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            rating: rating
-          })
-        });
-
-        if (!rateResponse.ok) {
-          const errorData = await rateResponse.json();
-          throw new Error(errorData.message || 'Failed to update rating');
-        }
-
-        const rateData = await rateResponse.json();
-        
-        // ✅ Update both user rating and book's average rating
-        setUserRating(rating);
-        // ✅ Also update the review rating to sync with the main rating
-        setReviewRating(rating);
-        
-        // Update the book's average rating in the UI
-        if (rateData.newAverageRating) {
-          setBook(prevBook => ({
-            ...prevBook,
-            average_rating: rateData.newAverageRating
-          }));
-        }
-
-        console.log('✅ Rating updated successfully:', rateData);
-
-      } catch (error) {
-        console.error('Failed to rate book:', error);
-        alert(`Failed to rate book: ${error.message}`);
-      } finally {
-        setIsRating(false);
-      }
-    };
-
-    const handleShelfChange = async (shelf) => {
-      if (!isLoggedIn()) {
-        navigate('/login');
-        return;
       }
 
-      setIsUpdatingShelf(true);
-      setShowShelfDropdown(false);
+      // ✅ Use the correct rating endpoint
+      const rateResponse = await fetch(`${API_URL}/myBooks/books/${id}/rate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          rating: rating
+        })
+      });
 
-      try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-
-        if (shelf === 'untracked') {
-          // ✅ Remove book from library (untrack it)
-          if (currentShelf !== 'untracked') {
-            const deleteResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              }
-            });
-
-            if (!deleteResponse.ok) {
-              throw new Error('Failed to remove book from library');
-            }
-          }
-          setCurrentShelf('untracked');
-        } else {
-          // ✅ Adding book to a specific shelf
-          if (currentShelf === 'untracked') {
-            // Add book to library with specified shelf
-            const addResponse = await fetch('http://localhost:3000/myBooks/books', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                bookId: id,
-                shelf: shelf
-              })
-            });
-
-            if (!addResponse.ok) {
-              throw new Error('Failed to add book to library');
-            }
-          } else {
-            // Update existing book shelf
-            const updateResponse = await fetch(`http://localhost:3000/myBooks/books/${id}`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                shelf: shelf
-              })
-            });
-
-            if (!updateResponse.ok) {
-              throw new Error('Failed to update book shelf');
-            }
-          }
-          setCurrentShelf(shelf);
-        }
-
-      } catch (error) {
-        console.error('Failed to update shelf:', error);
-        alert('Failed to update shelf. Please try again.');
-      } finally {
-        setIsUpdatingShelf(false);
+      if (!rateResponse.ok) {
+        const errorData = await rateResponse.json();
+        throw new Error(errorData.message || 'Failed to update rating');
       }
-    };
 
-    const handleSearch = (searchTerm) => {
-      navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
-    };
-
-
-    const getShelfDisplayName = (shelf) => {
-      switch (shelf) {
-        case 'want-to-read': return 'Want to Read';
-        case 'currently-reading': return 'Currently Reading';
-        case 'read': return 'Read';
-        case 'untracked': return 'Untracked';
-        default: return 'Untracked';
-      }
-    };
-
-    const getShelfButtonClass = (shelf) => {
-      switch (shelf) {
-        case 'read': return 'shelf-read';
-        case 'currently-reading': return 'shelf-reading';
-        case 'want-to-read': return 'shelf-want';
-        case 'untracked': return 'shelf-untracked';
-        default: return 'shelf-untracked';
-      }
-    };
-
-    if (loading) {
-      return (
-        <div className="book-page">
-          <Navbar 
-            loggedIn={loggedIn} 
-            onSearch={handleSearch}
-            showFilters={false}
-          />
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>Loading book details...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="book-page">
-          <Navbar 
-            loggedIn={loggedIn} 
-            onSearch={handleSearch}
-            showFilters={false}
-          />
-          <div className="error-container">
-            <p>Error: {error}</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (!book) {
-      return (
-        <div className="book-page">
-          <Navbar 
-            loggedIn={loggedIn} 
-            onSearch={handleSearch}
-            showFilters={false}
-          />
-          <div className="error-container">
-            <p>No book found.</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Calculate stars for rating
-    const rating = Math.round(parseFloat(book.average_rating) || 0);
-    const formatDate = (dateString) => {
-      if (!dateString) return 'Unknown';
-      return new Date(dateString).getFullYear();
-    };
-
-    const scrollOtherBooks = (direction) => {
-      if (otherBooksScrollRef.current) {
-        const scrollAmount = 300; // Adjust scroll distance as needed
-        const scrollLeft = otherBooksScrollRef.current.scrollLeft;
-        const targetScroll = direction === 'left' 
-          ? scrollLeft - scrollAmount 
-          : scrollLeft + scrollAmount;
-        
-        otherBooksScrollRef.current.scrollTo({
-          left: targetScroll,
-          behavior: 'smooth'
-        });
-      }
-    };
-
-    // ✅ Add handler for review rating changes
-    const handleReviewRatingChange = async (rating) => {
-      // Update the review rating state
+      const rateData = await rateResponse.json();
+      
+      // ✅ Update both user rating and book's average rating
+      setUserRating(rating);
+      // ✅ Also update the review rating to sync with the main rating
       setReviewRating(rating);
       
-      // Also update the main user rating (call the main rating handler)
-      await handleRatingChange(rating);
-    };
+      // Update the book's average rating in the UI
+      if (rateData.newAverageRating) {
+        setBook(prevBook => ({
+          ...prevBook,
+          average_rating: rateData.newAverageRating
+        }));
+      }
 
+      console.log('✅ Rating updated successfully:', rateData);
+
+    } catch (error) {
+      console.error('Failed to rate book:', error);
+      alert(`Failed to rate book: ${error.message}`);
+    } finally {
+      setIsRating(false);
+    }
+  };
+
+  const handleShelfChange = async (shelf) => {
+    if (!isLoggedIn()) {
+      navigate('/login');
+      return;
+    }
+
+    setIsUpdatingShelf(true);
+    setShowShelfDropdown(false);
+
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+      if (shelf === 'untracked') {
+        // ✅ Remove book from library (untrack it)
+        if (currentShelf !== 'untracked') {
+          const deleteResponse = await fetch(`${API_URL}/myBooks/books/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            }
+          });
+
+          if (!deleteResponse.ok) {
+            throw new Error('Failed to remove book from library');
+          }
+        }
+        setCurrentShelf('untracked');
+      } else {
+        // ✅ Adding book to a specific shelf
+        if (currentShelf === 'untracked') {
+          // Add book to library with specified shelf
+          const addResponse = await fetch(`${API_URL}/myBooks/books`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              bookId: id,
+              shelf: shelf
+            })
+          });
+
+          if (!addResponse.ok) {
+            throw new Error('Failed to add book to library');
+          }
+        } else {
+          // Update existing book shelf
+          const updateResponse = await fetch(`${API_URL}/myBooks/books/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              shelf: shelf
+            })
+          });
+
+          if (!updateResponse.ok) {
+            throw new Error('Failed to update book shelf');
+          }
+        }
+        setCurrentShelf(shelf);
+      }
+
+    } catch (error) {
+      console.error('Failed to update shelf:', error);
+      alert('Failed to update shelf. Please try again.');
+    } finally {
+      setIsUpdatingShelf(false);
+    }
+  };
+
+  const handleSearch = (searchTerm) => {
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
+
+
+  const getShelfDisplayName = (shelf) => {
+    switch (shelf) {
+      case 'want-to-read': return 'Want to Read';
+      case 'currently-reading': return 'Currently Reading';
+      case 'read': return 'Read';
+      case 'untracked': return 'Untracked';
+      default: return 'Untracked';
+    }
+  };
+
+  const getShelfButtonClass = (shelf) => {
+    switch (shelf) {
+      case 'read': return 'shelf-read';
+      case 'currently-reading': return 'shelf-reading';
+      case 'want-to-read': return 'shelf-want';
+      case 'untracked': return 'shelf-untracked';
+      default: return 'shelf-untracked';
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="goodreads-book-page">
+      <div className="book-page">
         <Navbar 
           loggedIn={loggedIn} 
           onSearch={handleSearch}
           showFilters={false}
         />
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading book details...</p>
+        </div>
+      </div>
+    );
+  }
 
-        <div className="book-page-container">
-          {/* Main book information section */}
-          <div className="book-main-section">
-            <div className="book-cover-area">
-              <img
-                src={book.cover_image || '/default-book-cover.jpg'}
-                alt={book.title}
-                className="book-cover-image"
-              />
-              {currentShelf === 'read' && (
-                <div className="read-status-badge">
-                  <FaCheckCircle /> Read
-                </div>
-              )}
+  if (error) {
+    return (
+      <div className="book-page">
+        <Navbar 
+          loggedIn={loggedIn} 
+          onSearch={handleSearch}
+          showFilters={false}
+        />
+        <div className="error-container">
+          <p>Error: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!book) {
+    return (
+      <div className="book-page">
+        <Navbar 
+          loggedIn={loggedIn} 
+          onSearch={handleSearch}
+          showFilters={false}
+        />
+        <div className="error-container">
+          <p>No book found.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate stars for rating
+  const rating = Math.round(parseFloat(book.average_rating) || 0);
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    return new Date(dateString).getFullYear();
+  };
+
+  const scrollOtherBooks = (direction) => {
+    if (otherBooksScrollRef.current) {
+      const scrollAmount = 300; // Adjust scroll distance as needed
+      const scrollLeft = otherBooksScrollRef.current.scrollLeft;
+      const targetScroll = direction === 'left' 
+        ? scrollLeft - scrollAmount 
+        : scrollLeft + scrollAmount;
+      
+      otherBooksScrollRef.current.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // ✅ Add handler for review rating changes
+  const handleReviewRatingChange = async (rating) => {
+    // Update the review rating state
+    setReviewRating(rating);
+    
+    // Also update the main user rating (call the main rating handler)
+    await handleRatingChange(rating);
+  };
+
+  return (
+    <div className="goodreads-book-page">
+      <Navbar 
+        loggedIn={loggedIn} 
+        onSearch={handleSearch}
+        showFilters={false}
+      />
+
+      <div className="book-page-container">
+        {/* Main book information section */}
+        <div className="book-main-section">
+          <div className="book-cover-area">
+            <img
+              src={book.cover_image || '/default-book-cover.jpg'}
+              alt={book.title}
+              className="book-cover-image"
+            />
+            {currentShelf === 'read' && (
+              <div className="read-status-badge">
+                <FaCheckCircle /> Read
+              </div>
+            )}
+          </div>
+
+          <div className="book-info-area">
+            <div className="book-title-section">
+              <h1 className="main-book-title">{book.title}</h1>
+              <div className="author-link">
+                by <span 
+                  className={`author-name ${book.author_id ? 'clickable' : ''}`}
+                  onClick={book.author_id ? () => navigate(`/author/${book.author_id}`) : undefined}
+                >
+                  {book.author_name || 'Unknown Author'}
+                </span>
+              </div>
             </div>
 
-            <div className="book-info-area">
-              <div className="book-title-section">
-                <h1 className="main-book-title">{book.title}</h1>
-                <div className="author-link">
-                  by <span 
-                    className={`author-name ${book.author_id ? 'clickable' : ''}`}
-                    onClick={book.author_id ? () => navigate(`/author/${book.author_id}`) : undefined}
-                  >
-                    {book.author_name || 'Unknown Author'}
-                  </span>
-                </div>
-              </div>
 
+            {/* User Actions */}
+            {loggedIn ? (
+              <div className="user-actions-section">
+                <div className="primary-actions">
+                  <div className="shelf-selector-modern">
+                    <button 
+                      className={`shelf-btn ${getShelfButtonClass(currentShelf)} ${isUpdatingShelf ? 'loading' : ''}`}
+                      onClick={() => setShowShelfDropdown(!showShelfDropdown)}
+                      disabled={isUpdatingShelf}
+                    >
+                      {isUpdatingShelf ? 'Updating...' : getShelfDisplayName(currentShelf)}
+                      <BiChevronDown className="dropdown-icon" />
+                    </button>
 
-              {/* User Actions */}
-              {loggedIn ? (
-                <div className="user-actions-section">
-                  <div className="primary-actions">
-                    <div className="shelf-selector-modern">
-                      <button 
-                        className={`shelf-btn ${getShelfButtonClass(currentShelf)} ${isUpdatingShelf ? 'loading' : ''}`}
-                        onClick={() => setShowShelfDropdown(!showShelfDropdown)}
-                        disabled={isUpdatingShelf}
-                      >
-                        {isUpdatingShelf ? 'Updating...' : getShelfDisplayName(currentShelf)}
-                        <BiChevronDown className="dropdown-icon" />
-                      </button>
-
-                      {showShelfDropdown && (
-                        <div className="shelf-dropdown-modern">
-                          <div className="shelf-option-modern" onClick={() => handleShelfChange('want-to-read')}>
-                            Want to Read
-                          </div>
-                          <div className="shelf-option-modern" onClick={() => handleShelfChange('currently-reading')}>
-                            Currently Reading
-                          </div>
-                          <div className="shelf-option-modern" onClick={() => handleShelfChange('read')}>
-                            Read
-                          </div>
-                          <div className="shelf-option-modern" onClick={() => handleShelfChange('untracked')}>
-                            Untracked
+                    {showShelfDropdown && (
+                      <div className="shelf-dropdown-modern">
+                        <div className="shelf-option-modern" onClick={() => handleShelfChange('want-to-read')}>
+                          Want to Read
+                        </div>
+                        <div className="shelf-option-modern" onClick={() => handleShelfChange('currently-reading')}>
+                          Currently Reading
+                        </div>
+                        <div className="shelf-option-modern" onClick={() => handleShelfChange('read')}>
+                          Read
+                        </div>
+                        <div className="shelf-option-modern" onClick={() => handleShelfChange('untracked')}>
                           </div>
                         </div>
                       )}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Home.css';
 import Homescroll from '../components/Homescroll';
 import Navbar from '../components/Navbar';
+import API_URL from '../config/api';
 import '../components/Navbar.css';
 
 
@@ -33,7 +34,7 @@ function Home() {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const res = await fetch('http://localhost:3000/', { headers });
+        const res = await fetch(`${API_URL}/`, { headers });
         const data = await res.json();
         if (!data.success || !data.data) throw new Error('Invalid response format');
 
