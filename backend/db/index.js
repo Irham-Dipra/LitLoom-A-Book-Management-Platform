@@ -7,6 +7,9 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'postgres',
   password: process.env.DB_PASSWORD || 'litloom3223',
   port: process.env.DB_PORT || 5432,
+  ssl: {
+    rejectUnauthorized: false, // required for Supabase
+  },
 });
 
 module.exports = pool;
