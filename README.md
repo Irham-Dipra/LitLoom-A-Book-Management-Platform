@@ -26,6 +26,43 @@ If it’s book-related, it’s here. 📖
 LitLoom is now live and accessible at [https://litloom-site.vercel.app](https://litloom-site.vercel.app) — explore the platform directly in your browser!  
 The backend API is hosted separately on Render for data operations and analytics.  
 
+## 📸 Screenshots
+
+### Home Page
+![LitLoom Home Page](assets/screenshots/HomePage.png)
+Discover featured, trending, and new books on the main page.
+
+### Book Profile
+![LitLoom Book Profile](assets/screenshots/BookProfile.png)
+View detailed information, ratings, and descriptions for a specific book.
+
+### Personal Library
+![LitLoom My Books Page](assets/screenshots/MyBooksPage.png)
+Manage your personal library with custom shelves like "Read" and "Want to Read".
+
+### Community Reviews
+![LitLoom Community Page](assets/screenshots/Community.png)
+Browse, vote, and comment on book reviews from other users.
+
+### Advanced Filtering
+![LitLoom Filter Modal](assets/screenshots/SearchByFilter.png)
+Filter books by genre, author, publisher, country, and more.
+
+### Author Profile
+![LitLoom Author Profile](assets/screenshots/AuthorProfile.png)
+Explore author biographies and see a list of their complete works.
+
+### Analytics Dashboard
+![LitLoom Analytics Page](assets/screenshots/AnalysisPage.png)
+Visualize genre-wise ratings and other key metrics in the analytics dashboard.
+
+### User Profile
+![LitLoom User Profile](assets/screenshots/ProfilePage.png)
+View your personal profile, reading stats, and library overview.
+
+### Book Management (Admin)
+![LitLoom Book Management](assets/screenshots/BookManagement.png)
+Moderators can edit, delete, and manage all books in the catalog.
 
 ## ✨ Features
 
