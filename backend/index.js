@@ -10,7 +10,8 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://lit-loom-a-book-management-platform-bb2w-8oxepn8cg.vercel.app'
+    'https://lit-loom-a-book-management-platform-bb2w-8oxepn8cg.vercel.app',
+    'https://lit-loom-a-book-management-platform-xi.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
