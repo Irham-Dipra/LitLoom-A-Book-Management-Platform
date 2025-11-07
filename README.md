@@ -22,6 +22,11 @@ If it’s book-related, it’s here. 📖
 
 ---
 
+### 🌐 Live Website  
+LitLoom is now live and accessible at [https://litloom-site.vercel.app](https://litloom-site.vercel.app) — explore the platform directly in your browser!  
+The backend API is hosted separately on Render for data operations and analytics.  
+
+
 ## ✨ Features
 
 ### 🔍 **Advanced Book Discovery & Search**
